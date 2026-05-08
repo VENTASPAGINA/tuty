@@ -4,96 +4,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-YouTube Stream Wall</title>
+    <title>Multi-Stream IP Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #0f0f0f;
-            color: white;
+            background-color: #09090b;
+            color: #e4e4e7;
             overflow-x: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
         }
         .stream-grid {
             display: grid;
-            gap: 4px;
-            transition: transform 0.3s ease-out;
+            gap: 12px;
             padding: 20px;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
         .stream-card {
-            aspect-ratio: 16 / 9;
-            background: #222;
+            background: #18181b;
+            border: 1px solid #27272a;
             border-radius: 4px;
             overflow: hidden;
             position: relative;
+            aspect-ratio: 16/10;
+            display: flex;
+            flex-direction: column;
+        }
+        .video-container {
+            flex-grow: 1;
+            position: relative;
+            background: #000;
         }
         iframe {
             width: 100%;
             height: 100%;
             border: none;
+            pointer-events: none; /* Evita interacción accidental */
         }
-        .controls {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid #333;
+        .overlay-data {
+            padding: 6px 10px;
+            font-size: 0.65rem;
+            background: #111;
+            border-top: 1px solid #27272a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        /* Personalización de scrollbar */
+        .status-dot {
+            height: 6px;
+            width: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 0, 0.02) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f0f0f; }
-        ::-webkit-scrollbar-thumb { background: #ff0000; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ef4444; }
     </style>
 </head>
 <body>
 
-    <div class="controls p-4">
-        <div class="max-w-6xl mx-auto">
-            <h1 class="text-xl font-bold text-red-600 mb-4 text-center">YOUTUBE MEGA-WALL (Sincronización Masiva)</h1>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <!-- Control de URL -->
-                <div class="col-span-2">
-                    <label class="block text-xs uppercase text-gray-400 mb-1">ID del Video o Link de YouTube (Live)</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="videoInput" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" 
-                               class="w-full bg-zinc-800 border border-zinc-700 p-2 rounded text-white focus:outline-none focus:border-red-500">
-                        <button onclick="updateAllStreams()" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-bold transition">SINCRONIZAR</button>
-                    </div>
-                </div>
-
-                <!-- Control de Cantidad -->
+    <!-- Header / Controls -->
+    <div class="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 p-4 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded animate-pulse">LIVE MONITOR</div>
                 <div>
-                    <label class="block text-xs uppercase text-gray-400 mb-1">Número de Pestañas (Máx: 500)</label>
-                    <input type="number" id="countInput" value="100" min="1" max="500"
-                           class="w-full bg-zinc-800 border border-zinc-700 p-2 rounded text-white focus:outline-none">
+                    <h1 class="text-lg font-bold tracking-tighter text-zinc-100">CCTV_NODE_MATRIX v2.0</h1>
+                    <p class="text-[10px] text-zinc-500 uppercase tracking-widest">Protocolo de Visualización Distribuida</p>
                 </div>
             </div>
 
-            <!-- Panel Maestro de Movimiento -->
-            <div class="flex items-center justify-between bg-zinc-900 p-3 rounded border border-zinc-800">
-                <div class="text-sm">
-                    <span id="activeCount">100</span> Pantallas cargadas
+            <div class="flex flex-wrap gap-4 items-center justify-center">
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-zinc-500 uppercase mb-1">Source URL / ID</label>
+                    <input type="text" id="videoInput" placeholder="ID de Youtube o URL" 
+                           class="bg-zinc-900 border border-zinc-700 text-white text-xs px-3 py-2 rounded focus:outline-none focus:border-red-600 w-64">
                 </div>
-                <div class="flex gap-4 items-center">
-                    <span class="text-xs text-gray-400">Desplazamiento Horizontal:</span>
-                    <input type="range" id="moveSlider" min="-50" max="50" value="0" 
-                           class="accent-red-600 w-48" oninput="moveWall(this.value)">
+                
+                <div class="flex flex-col">
+                    <label class="text-[10px] text-zinc-500 uppercase mb-1">Nodos (Máx 500)</label>
+                    <input type="number" id="countInput" value="20" min="1" max="500"
+                           class="bg-zinc-900 border border-zinc-700 text-white text-xs px-3 py-2 rounded focus:outline-none focus:border-red-600 w-20">
                 </div>
-                <button onclick="generateGrid()" class="text-xs bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded">Regenerar Cuadrícula</button>
+
+                <div class="flex items-end h-full pt-4">
+                    <button onclick="generateGrid()" class="bg-zinc-100 hover:bg-white text-black font-bold text-[11px] px-6 py-2 rounded uppercase transition-colors">
+                        Sincronizar Red
+                    </button>
+                </div>
+            </div>
+
+            <div class="hidden lg:flex flex-col items-end border-l border-zinc-800 pl-6 text-right">
+                <div class="text-sm font-mono text-red-500" id="activeCountDisplay">000 NODES</div>
+                <div class="flex gap-2 items-center mt-1">
+                    <span class="text-[10px] text-gray-500">OFFSET:</span>
+                    <input type="range" id="moveSlider" min="-100" max="100" value="0" 
+                           class="accent-red-600 w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer" oninput="moveWall(this.value)">
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- El Contenedor de las "Pestañas" -->
-    <div id="wallContainer" class="stream-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
-        <!-- Generado dinámicamente -->
+    <!-- Contenedor Principal -->
+    <div id="wallContainer" class="stream-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+        <!-- Los nodos se generan aquí -->
     </div>
 
     <script>
-        let currentVideoId = "jfKfPfyJRdk"; // Video por defecto (Lo-fi Girl)
+        let currentVideoId = "jfKfPfyJRdk"; // Lo-fi Girl por defecto
+
+        function getRandomIP() {
+            return Array.from({length: 4}, () => Math.floor(Math.random() * 256)).join('.');
+        }
+
+        function getRandomLocation() {
+            const zones = ["NORTH-LATAM", "EU-WEST", "ASIA-SOUTH", "US-EAST", "PACIFIC-RIM", "EMEA-OFFSHORE"];
+            return zones[Math.floor(Math.random() * zones.length)];
+        }
 
         function extractVideoID(url) {
+            if (!url) return currentVideoId;
             const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
             const match = url.match(regExp);
             return (match && match[7].length == 11) ? match[7] : url;
@@ -101,52 +148,60 @@
 
         function generateGrid() {
             const container = document.getElementById('wallContainer');
-            const count = parseInt(document.getElementById('countInput').value) || 400;
-            const videoId = extractVideoID(document.getElementById('videoInput').value) || currentVideoId;
+            const count = parseInt(document.getElementById('countInput').value) || 20;
+            const videoId = extractVideoID(document.getElementById('videoInput').value);
             
-            document.getElementById('activeCount').innerText = count;
+            document.getElementById('activeCountDisplay').innerText = String(count).padStart(3, '0') + " NODES";
             container.innerHTML = '';
 
-            // Limitar a 500 para evitar que el navegador del usuario explote
             const safeCount = Math.min(count, 500);
 
             for (let i = 0; i < safeCount; i++) {
+                const ip = getRandomIP();
+                const loc = getRandomLocation();
+                
                 const card = document.createElement('div');
-                card.className = 'stream-card shadow-lg hover:scale-105 transition-transform duration-300';
+                card.className = 'stream-card group hover:border-red-600/50 transition-all';
                 
-                // Usamos el modo embed de YouTube
-                // mute=1 es necesario porque los navegadores bloquean el autoplay con sonido masivo
-                const iframe = document.createElement('iframe');
-                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1`;
-                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                // Estructura interna
+                card.innerHTML = `
+                    <div class="video-container">
+                        <div class="scanline"></div>
+                        <div class="absolute top-2 left-2 z-20 bg-black/60 px-1 text-[9px] text-red-500 font-bold rounded">
+                            CH_${String(i + 1).padStart(3, '0')}
+                        </div>
+                        <iframe 
+                            src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3" 
+                            allow="autoplay; encrypted-media">
+                        </iframe>
+                    </div>
+                    <div class="overlay-data">
+                        <div class="flex items-center">
+                            <span class="status-dot bg-green-500"></span>
+                            <span class="text-zinc-400 font-mono">IP: ${ip}</span>
+                        </div>
+                        <div class="text-zinc-600 font-mono text-[9px]">
+                            LOC: ${loc}
+                        </div>
+                    </div>
+                `;
                 
-                card.appendChild(iframe);
                 container.appendChild(card);
             }
         }
 
-        function updateAllStreams() {
-            const input = document.getElementById('videoInput').value;
-            if (!input) return;
-            
-            currentVideoId = extractVideoID(input);
-            generateGrid();
-        }
-
         function moveWall(value) {
             const container = document.getElementById('wallContainer');
-            container.style.transform = `translateX(${value}vw)`;
+            container.style.transform = `translateX(${value}%)`;
         }
 
-        // Inicializar
+        // Inicialización
         window.onload = () => {
             generateGrid();
             
-            // Permitir que el input de video funcione al presionar Enter
-            document.getElementById('videoInput').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    updateAllStreams();
-                }
+            // Atajo de teclado Enter
+            document.getElementById('videoInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') generateGrid();
             });
         };
     </script>
