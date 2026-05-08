@@ -1,84 +1,156 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tienda de Ropa de Hombre</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-YouTube Stream Wall</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: white;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .stream-grid {
+            display: grid;
+            gap: 4px;
+            transition: transform 0.3s ease-out;
+            padding: 20px;
+        }
+        .stream-card {
+            aspect-ratio: 16 / 9;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .controls {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #333;
+        }
+        /* Personalización de scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f0f; }
+        ::-webkit-scrollbar-thumb { background: #ff0000; border-radius: 10px; }
+    </style>
 </head>
 <body>
-  <div class="title-container">
-    <h1 class="title">ROPA DE HOMBRE</h1>
-    <hr class="divider">
-  </div>
-  <div class="container">
-    <div class="product">
-      <img src="producto1.jpg" alt="Producto 1">
-      <div class="info">
-        <h2>Producto 1</h2>
-        <p class="price">$50</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-    <div class="product">
-      <img src="producto2.jpg" alt="Producto 2">
-      <div class="info">
-        <h2>Producto 2</h2>
-        <p class="price">$70</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-  </div>
-  <div class="container">
-    <div class="product">
-      <img src="producto1.jpg" alt="Producto 1">
-      <div class="info">
-        <h2>Producto 1</h2>
-        <p class="price">$50</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-    <div class="product">
-      <img src="producto2.jpg" alt="Producto 2">
-      <div class="info">
-        <h2>Producto 2</h2>
-        <p class="price">$70</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-  </div>
-  <div class="container">
-    <div class="product">
-      <img src="producto1.jpg" alt="Producto 1">
-      <div class="info">
-        <h2>Producto 1</h2>
-        <p class="price">$50</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-    <div class="product">
-      <img src="producto2.jpg" alt="Producto 2">
-      <div class="info">
-        <h2>Producto 2</h2>
-        <p class="price">$70</p>
-        <p class="description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae magna at justo fermentum vehicula.</p>
-        <button class="add-to-cart">Agregar al Carrito</button>
-      </div>
-    </div>
-  </div>
-  <div class="cart">
-    <h2>Carrito de Compras</h2>
-    <ul class="cart-items">
-      <!-- Los productos agregados al carrito se mostrarán aquí -->
-    </ul>
-    <button class="buy-button">Comprar</button>
-  </div>
 
-  <script src="script.js"></script>
+    <div class="controls p-4">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-xl font-bold text-red-600 mb-4 text-center">YOUTUBE MEGA-WALL (Sincronización Masiva)</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- Control de URL -->
+                <div class="col-span-2">
+                    <label class="block text-xs uppercase text-gray-400 mb-1">ID del Video o Link de YouTube (Live)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="videoInput" placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ" 
+                               class="w-full bg-zinc-800 border border-zinc-700 p-2 rounded text-white focus:outline-none focus:border-red-500">
+                        <button onclick="updateAllStreams()" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded font-bold transition">SINCRONIZAR</button>
+                    </div>
+                </div>
+
+                <!-- Control de Cantidad -->
+                <div>
+                    <label class="block text-xs uppercase text-gray-400 mb-1">Número de Pestañas (Máx: 500)</label>
+                    <input type="number" id="countInput" value="100" min="1" max="500"
+                           class="w-full bg-zinc-800 border border-zinc-700 p-2 rounded text-white focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Panel Maestro de Movimiento -->
+            <div class="flex items-center justify-between bg-zinc-900 p-3 rounded border border-zinc-800">
+                <div class="text-sm">
+                    <span id="activeCount">100</span> Pantallas cargadas
+                </div>
+                <div class="flex gap-4 items-center">
+                    <span class="text-xs text-gray-400">Desplazamiento Horizontal:</span>
+                    <input type="range" id="moveSlider" min="-50" max="50" value="0" 
+                           class="accent-red-600 w-48" oninput="moveWall(this.value)">
+                </div>
+                <button onclick="generateGrid()" class="text-xs bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded">Regenerar Cuadrícula</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- El Contenedor de las "Pestañas" -->
+    <div id="wallContainer" class="stream-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+        <!-- Generado dinámicamente -->
+    </div>
+
+    <script>
+        let currentVideoId = "jfKfPfyJRdk"; // Video por defecto (Lo-fi Girl)
+
+        function extractVideoID(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : url;
+        }
+
+        function generateGrid() {
+            const container = document.getElementById('wallContainer');
+            const count = parseInt(document.getElementById('countInput').value) || 400;
+            const videoId = extractVideoID(document.getElementById('videoInput').value) || currentVideoId;
+            
+            document.getElementById('activeCount').innerText = count;
+            container.innerHTML = '';
+
+            // Limitar a 500 para evitar que el navegador del usuario explote
+            const safeCount = Math.min(count, 500);
+
+            for (let i = 0; i < safeCount; i++) {
+                const card = document.createElement('div');
+                card.className = 'stream-card shadow-lg hover:scale-105 transition-transform duration-300';
+                
+                // Usamos el modo embed de YouTube
+                // mute=1 es necesario porque los navegadores bloquean el autoplay con sonido masivo
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1`;
+                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                
+                card.appendChild(iframe);
+                container.appendChild(card);
+            }
+        }
+
+        function updateAllStreams() {
+            const input = document.getElementById('videoInput').value;
+            if (!input) return;
+            
+            currentVideoId = extractVideoID(input);
+            generateGrid();
+        }
+
+        function moveWall(value) {
+            const container = document.getElementById('wallContainer');
+            container.style.transform = `translateX(${value}vw)`;
+        }
+
+        // Inicializar
+        window.onload = () => {
+            generateGrid();
+            
+            // Permitir que el input de video funcione al presionar Enter
+            document.getElementById('videoInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    updateAllStreams();
+                }
+            });
+        };
+    </script>
 </body>
 </html>
+
+```
