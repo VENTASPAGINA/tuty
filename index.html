@@ -41,7 +41,7 @@
     <div class="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-xl flex flex-col items-center max-w-sm text-center">
       <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
       <h3 class="font-extrabold text-slate-900 text-lg mb-1">Cargando tus Finanzas</h3>
-      <p class="text-xs text-slate-500">Conectando de forma segura con la nube y sincronizando tus planes de ahorro...</p>
+      <p class="text-xs text-slate-500">Iniciando y preparando tu plan de ahorro...</p>
     </div>
   </div>
 
@@ -64,9 +64,9 @@
 
       <div class="flex items-center gap-3">
         <!-- Indicador de estado de sincronización -->
-        <div id="sync-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 transition-all duration-300">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-600 animate-pulse"></i> 
-          <span id="sync-text">Nube Conectada</span>
+        <div id="sync-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200 transition-all duration-300">
+          <i id="sync-icon" data-lucide="smartphone" class="w-3.5 h-3.5 text-blue-600"></i> 
+          <span id="sync-text">Guardado en Celular</span>
         </div>
 
         <button onclick="restaurarPorDefecto()" class="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all cursor-pointer">
@@ -447,23 +447,24 @@
   </div>
 
   <!-- ========================================================= -->
-  <!--                      SCRIPTS DE FIREBASE                 -->
+  <!--                      SCRIPTS DE LÓGICA                     -->
   <!-- ========================================================= -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Variables globales inyectadas por el entorno
+    // Intentar leer las variables del entorno
     const firebaseConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
-    const appId = window.__app_id || 'plan-quincenal-html';
+    const appId = window.__app_id || 'plan-quincenal-hibrido';
     const initialAuthToken = window.__initial_auth_token || null;
 
     let app, auth, db;
     let currentUser = null;
     let dataLoaded = false;
+    let isCloudActive = false;
 
-    // Estado local reactivo
+    // Estado local principal
     let state = {
       ingresoQ1: 15000,
       ingresoQ2: 15000,
@@ -487,7 +488,7 @@
         { id: 'q2-1', nombre: 'IMPUESTO', monto: 2000, pagado: false, icono: 'tax' },
         { id: 'q2-2', nombre: 'ESTEFANI', monto: 3000, pagado: false, icono: 'user' },
         { id: 'q2-3', nombre: 'PASAJE', monto: 1200, pagado: false, icono: 'bus' },
-        { id: 'q2-4', nombre: 'TARJETA', monto: 4000, pagado: false, icono: 'card' },
+        { id: 'q2-4', text: 'TARJETA', nombre: 'TARJETA', monto: 4000, pagado: false, icono: 'card' },
         { id: 'q2-5', nombre: 'PRÉSTAMO', monto: 3500, pagado: false, icono: 'card' },
       ],
       metaAhorro: 5000,
@@ -507,65 +508,72 @@
       { id: 'other', iconClass: 'help-circle', label: 'Otro' }
     ];
 
-    // Variables de Modal de Entrada de Datos
     let selectedQuincenaGasto = 'Q1';
     let selectedIconoGasto = 'other';
 
-    // Inicializar Firebase si el config está disponible
-    if (firebaseConfig) {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
+    // Inicializar Firebase condicionalmente para evitar bloqueos
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        isCloudActive = true;
+      } catch (e) {
+        console.warn("Fallo al inicializar Firebase. Operando de forma local.");
+        isCloudActive = false;
+      }
     }
 
-    // Proceso de Autenticación obligatorio antes de cualquier operación en Firestore
-    const iniciarSesion = async () => {
-      if (!auth) {
-        // Fallback local si Firebase no está disponible en este entorno
-        console.warn("Firebase no está configurado. Operando de modo local (Local Storage).");
-        cargarLocalState();
-        document.getElementById('loading-screen').classList.add('hidden');
-        document.getElementById('sync-badge').className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-rose-50 text-rose-700 border-rose-200";
-        document.getElementById('sync-text').innerText = "Modo Local Activo";
-        return;
-      }
-
-      try {
-        if (initialAuthToken) {
-          await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-          await signInAnonymously(auth);
+    // Proceso de Carga Inteligente
+    const iniciarApp = async () => {
+      // Temporizador de seguridad: si Firebase tarda más de 2 segundos, activar Modo Local automáticamente
+      const safetyTimeout = setTimeout(() => {
+        if (!dataLoaded) {
+          console.warn("Firebase demoró demasiado. Activando almacenamiento local de respaldo.");
+          activarModoLocal();
         }
-      } catch (e) {
-        console.error("Fallo de Autenticación en Firebase: ", e);
-        showToast("Error de conexión", "No se pudo sincronizar en la nube. Operando localmente.", "error");
+      }, 2000);
+
+      if (isCloudActive && auth) {
+        try {
+          if (initialAuthToken) {
+            await signInWithCustomToken(auth, initialAuthToken);
+          } else {
+            await signInAnonymously(auth);
+          }
+        } catch (e) {
+          console.warn("Error de autenticación Firebase. Usando modo local.");
+          activarModoLocal();
+          clearTimeout(safetyTimeout);
+        }
+      } else {
+        activarModoLocal();
+        clearTimeout(safetyTimeout);
       }
     };
 
-    // Suscripción al estado de Auth
-    if (auth) {
+    // Escuchador de estado Firebase
+    if (isCloudActive && auth) {
       onAuthStateChanged(auth, (user) => {
         if (user) {
           currentUser = user;
           conectarFirestore(user.uid);
         } else {
-          iniciarSesion();
+          activarModoLocal();
         }
       });
     } else {
-      iniciarSesion();
+      iniciarApp();
     }
 
-    // Escucha de datos privada de Firestore (RULE 1 & 3)
+    // Conectar a Firestore
     const conectarFirestore = (userId) => {
-      // Ruta Privada Obligatoria: /artifacts/{appId}/users/{userId}/finances/plan_data
       const docRef = doc(db, 'artifacts', appId, 'users', userId, 'finances', 'plan_data');
 
       onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           state = docSnap.data();
         } else {
-          // Inicializar datos iniciales por defecto en la base de datos
           setDoc(docRef, defaultState).catch(err => console.error(err));
           state = JSON.parse(JSON.stringify(defaultState));
         }
@@ -573,14 +581,32 @@
         document.getElementById('loading-screen').classList.add('hidden');
         renderApp();
       }, (error) => {
-        console.error("Error cargando base de datos:", error);
-        showToast("Error de Carga", "No se pudieron obtener tus datos guardados.", "error");
+        console.warn("Error en tiempo real de Firestore, usando LocalStorage.");
+        activarModoLocal();
       });
     };
 
-    // Fallback: Cargar y Guardar Local si no hay conexión
+    // Modo Local de Respaldo instantáneo (Soluciona el bloqueo de carga)
+    const activarModoLocal = () => {
+      isCloudActive = false;
+      dataLoaded = true;
+      cargarLocalState();
+      
+      // Actualizar UI
+      const badge = document.getElementById('sync-badge');
+      const text = document.getElementById('sync-text');
+      const icon = document.getElementById('sync-icon');
+      
+      badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200";
+      text.innerText = "Guardado en Celular";
+      icon.setAttribute('data-lucide', 'smartphone');
+      
+      document.getElementById('loading-screen').classList.add('hidden');
+      renderApp();
+    };
+
     const cargarLocalState = () => {
-      const saved = localStorage.getItem('plan_quincenal_html_data');
+      const saved = localStorage.getItem('plan_quincenal_local_db');
       if (saved) {
         try {
           state = JSON.parse(saved);
@@ -590,40 +616,39 @@
       } else {
         state = JSON.parse(JSON.stringify(defaultState));
       }
-      renderApp();
     };
 
-    const saveLocalState = () => {
-      localStorage.setItem('plan_quincenal_html_data', JSON.stringify(state));
+    const guardarLocalState = () => {
+      localStorage.setItem('plan_quincenal_local_db', JSON.stringify(state));
     };
 
-    // Guardado unificado y actualización
+    // Sincronizar Cambios
     const pushChanges = async () => {
-      renderApp(); // Render inmediato (Optimistic UI)
+      renderApp(); 
       mostrarSincronizando(true);
 
-      if (currentUser && db) {
+      if (isCloudActive && currentUser && db) {
         try {
           const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'finances', 'plan_data');
           await setDoc(docRef, state);
         } catch (error) {
-          console.error("Error al empujar cambios:", error);
-          showToast("Error de Guardado", "No se pudo sincronizar con la nube.", "error");
+          console.error("Error al guardar en nube:", error);
+          guardarLocalState();
         } finally {
           setTimeout(() => mostrarSincronizando(false), 500);
         }
       } else {
-        saveLocalState();
-        setTimeout(() => mostrarSincronizando(false), 400);
+        guardarLocalState();
+        setTimeout(() => mostrarSincronizando(false), 300);
       }
     };
 
     const mostrarSincronizando = (estaSincronizando) => {
       const badge = document.getElementById('sync-badge');
       const text = document.getElementById('sync-text');
-      if (!currentUser) {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-rose-50 text-rose-700 border-rose-200";
-        text.innerText = "Modo Local Activo";
+      if (!isCloudActive) {
+        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200";
+        text.innerText = "Guardado en Celular";
         return;
       }
 
@@ -649,16 +674,13 @@
     };
 
     const renderApp = () => {
-      // 1. Ingresos
       renderIngreso('Q1');
       renderIngreso('Q2');
       renderMetaAhorro();
 
-      // 2. Listado de gastos
       renderGastosList('Q1');
       renderGastosList('Q2');
 
-      // 3. Totales Quincenales
       const totalGastosQ1 = (state.gastosQ1 || []).reduce((acc, curr) => acc + curr.monto, 0);
       const totalGastosQ2 = (state.gastosQ2 || []).reduce((acc, curr) => acc + curr.monto, 0);
 
@@ -670,7 +692,6 @@
       document.getElementById('q2-total-gastos').innerText = formatMoney(totalGastosQ2);
       document.getElementById('q2-saldo-limpio').innerText = formatMoney(saldoLimpioQ2);
 
-      // Clases dinámicas del badge de Saldo Limpio
       const q1Badge = document.getElementById('q1-saldo-badge');
       if (saldoLimpioQ1 >= 0) {
         q1Badge.className = "p-2.5 rounded-full bg-emerald-500/20 text-emerald-400";
@@ -689,7 +710,6 @@
         q2Badge.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
       }
 
-      // 4. Resumen Mensual
       const ingresoTotal = (state.ingresoQ1 || 0) + (state.ingresoQ2 || 0);
       const gastosTotales = totalGastosQ1 + totalGastosQ2;
       const ahorroDisponible = ingresoTotal - gastosTotales;
@@ -698,17 +718,14 @@
       document.getElementById('resumen-gastos').innerText = formatMoney(gastosTotales);
       document.getElementById('resumen-ahorro').innerText = formatMoney(ahorroDisponible);
 
-      // 5. Barra de ahorro general
       const meta = state.metaAhorro || 1;
       const porcentajeAhorro = Math.min(100, Math.round((ahorroDisponible / meta) * 100));
       document.getElementById('progreso-ahorro-texto').innerText = `Progreso hacia Meta de Ahorro (${formatMoney(ahorroDisponible)} de ${formatMoney(state.metaAhorro)})`;
       document.getElementById('progreso-ahorro-porcentaje').innerText = `${porcentajeAhorro}%`;
       document.getElementById('progreso-ahorro-barra').style.width = `${porcentajeAhorro}%`;
 
-      // 6. Alcancías Distribuidas
       renderAlcancias();
 
-      // 7. Recomendaciones dinámicas
       const recomTexto = document.getElementById('recomendacion-texto');
       if (ahorroDisponible >= 2000) {
         recomTexto.innerHTML = `¡Excelente! Tu capacidad de ahorro mensual es de <strong class="text-emerald-700">${formatMoney(ahorroDisponible)}</strong>. A este ritmo, en un año completo podrías acumular <strong class="text-emerald-700">${formatMoney(ahorroDisponible * 12)}</strong> de ahorro neto. ¡Sigue controlando tus egresos!`;
@@ -716,11 +733,9 @@
         recomTexto.innerHTML = `Tu capacidad de ahorro proyectada actual es de <strong class="text-amber-700">${formatMoney(ahorroDisponible)}</strong>. Intenta reducir al menos <strong class="text-emerald-700">$1,000 en gastos</strong> en tu segunda quincena eliminando egresos innecesarios, así optimizarás tus finanzas mensuales.`;
       }
 
-      // Rehidratar iconos de lucide
       lucide.createIcons();
     };
 
-    // Render de Ingreso Quincenal
     const renderIngreso = (quincena) => {
       const container = document.getElementById(`${quincena.toLowerCase()}-ingreso-container`);
       const key = quincena === 'Q1' ? 'ingresoQ1' : 'ingresoQ2';
@@ -732,7 +747,7 @@
           <input 
             type="number" 
             id="input-ingreso-${quincena}" 
-            value="${state[key]}" 
+            value="${state[key] || 0}" 
             class="w-28 border border-emerald-300 rounded px-1.5 py-0.5 text-sm font-bold text-slate-800 focus:outline-emerald-500"
           />
           <button onclick="guardarIngresoInput('${quincena}')" class="bg-emerald-600 text-white p-1 rounded hover:bg-emerald-700 cursor-pointer">
@@ -752,7 +767,6 @@
       }
     };
 
-    // Render Meta Ahorro
     const renderMetaAhorro = () => {
       const container = document.getElementById('meta-ahorro-container');
       if (window.editMetaAhorro) {
@@ -760,7 +774,7 @@
           <input 
             type="number" 
             id="input-meta-ahorro" 
-            value="${state.metaAhorro}" 
+            value="${state.metaAhorro || 0}" 
             class="w-20 bg-slate-800 text-white text-xs font-bold rounded px-1.5 py-0.5 border border-white/20 focus:outline-none"
           />
           <button onclick="guardarMetaAhorroInput()" class="bg-emerald-500 hover:bg-emerald-600 text-white p-0.5 rounded cursor-pointer">
@@ -769,7 +783,7 @@
         `;
       } else {
         container.innerHTML = `
-          <span class="text-sm font-bold text-amber-400">${formatMoney(state.metaAhorro)}</span>
+          <span class="text-sm font-bold text-amber-400">${formatMoney(state.metaAhorro || 0)}</span>
           <button onclick="toggleEditarMetaAhorro(true)" class="text-slate-300 hover:text-white cursor-pointer">
             <i data-lucide="edit-2" class="w-3 h-3"></i>
           </button>
@@ -777,7 +791,6 @@
       }
     };
 
-    // Render Gastos
     const renderGastosList = (quincena) => {
       const container = document.getElementById(`${quincena.toLowerCase()}-gastos-list`);
       const gastos = quincena === 'Q1' ? state.gastosQ1 : state.gastosQ2;
@@ -796,7 +809,6 @@
               : `bg-white border-slate-200/70 hover:shadow-sm ${quincena === 'Q1' ? 'hover:border-emerald-200' : 'hover:border-blue-200'}`
           }">
             <div class="flex items-center gap-3.5 flex-1 min-w-0">
-              <!-- Botón pagar/completar -->
               <button onclick="togglePagoGasto('${quincena}', '${g.id}')" class="w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
                 g.pagado 
                   ? 'bg-emerald-500 border-emerald-500 text-white' 
@@ -805,12 +817,10 @@
                 <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3px]"></i>
               </button>
 
-              <!-- Icono -->
               <div class="p-2 rounded-xl ${g.pagado ? 'bg-slate-100 text-slate-400' : (quincena === 'Q1' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600')}">
                 <i data-lucide="${iconOption.iconClass}" class="w-5 h-5"></i>
               </div>
 
-              <!-- Info -->
               <div class="truncate">
                 <span class="block font-extrabold text-sm tracking-wide ${g.pagado ? 'line-through text-slate-400' : 'text-slate-700'}">
                   ${g.nombre}
@@ -819,7 +829,6 @@
               </div>
             </div>
 
-            <!-- Costo y Eliminar -->
             <div class="flex items-center gap-3">
               <span class="font-black text-sm ${g.pagado ? 'text-slate-400 line-through' : 'text-slate-800'}">
                 ${formatMoney(g.monto)}
@@ -833,7 +842,6 @@
       }).join('');
     };
 
-    // Render de Alcancías de Ahorro
     const renderAlcancias = () => {
       const container = document.getElementById('alcancias-grid');
       const alcancias = state.ahorrosDistribuidos || [];
@@ -864,12 +872,10 @@
               </button>
             </div>
 
-            <!-- Barra de progreso -->
             <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-3">
               <div class="bg-emerald-400 h-full rounded-full transition-all duration-300" style="width: ${porcentaje}%"></div>
             </div>
 
-            <!-- Sumar/restar -->
             <div class="flex justify-end gap-2">
               <button onclick="modificarAhorroActual('${ah.id}', -100)" class="bg-slate-900 hover:bg-slate-800 text-xs font-bold px-2 py-1 rounded-lg border border-white/10 cursor-pointer text-slate-200">
                 - $100
@@ -883,7 +889,6 @@
       }).join('');
     };
 
-    // Opciones del selector de iconos en el modal de gasto
     const renderIconOptionsModal = () => {
       const container = document.getElementById('iconos-gasto-container');
       container.innerHTML = ICON_OPTIONS.map(opt => {
@@ -1011,7 +1016,6 @@
       showToast("Gasto Agregado", `Se añadió "${nuevoItem.nombre}" correctamente.`, "success");
     };
 
-    // AHORROS
     window.abrirModalAhorro = () => {
       document.getElementById('ahorro-nombre').value = '';
       document.getElementById('ahorro-meta').value = '';
@@ -1062,10 +1066,9 @@
     window.eliminarAhorro = (id) => {
       state.ahorrosDistribuidos = (state.ahorrosDistribuidos || []).filter(ah => ah.id !== id);
       pushChanges();
-      showToast("Alcancía Eliminada", "Se eliminó el objetivo de ahorro de tu lista.", "success");
+      showToast("Alcancía Eliminada", "Se eliminó el objetivo de ahorro.", "success");
     };
 
-    // Confirm Modal para Restaurar Valores Predeterminados
     window.restaurarPorDefecto = () => {
       document.getElementById('modal-confirm').classList.remove('hidden');
       document.getElementById('modal-confirm').classList.add('flex');
@@ -1083,9 +1086,7 @@
       showToast("Valores Reiniciados", "Se cargó la plantilla de egresos por defecto.", "info");
     };
 
-    // =========================================================
-    //                        NOTIFICACIONES TOAST
-    // =========================================================
+    // TOASTS
     const showToast = (titulo, mensaje, tipo = "info") => {
       const container = document.getElementById('toast-container');
       const toastId = 'toast-' + Date.now();
@@ -1123,12 +1124,10 @@
       lucide.createIcons();
 
       const toastEl = document.getElementById(toastId);
-      // Animación de entrada
       setTimeout(() => {
         toastEl.classList.remove('translate-x-12', 'opacity-0');
       }, 50);
 
-      // Auto dismiss a los 4 segundos
       setTimeout(() => {
         dismissToast(toastId);
       }, 4000);
@@ -1143,6 +1142,9 @@
         }, 300);
       }
     };
+
+    // Forzar inicio de la aplicación
+    iniciarApp();
 
   </script>
 </body>
