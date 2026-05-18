@@ -1,288 +1,1055 @@
+```react
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  Calendar, 
+  Wallet, 
+  Plus, 
+  Trash2, 
+  CheckCircle2, 
+  DollarSign, 
+  TrendingUp, 
+  PiggyBank, 
+  Edit2, 
+  Check, 
+  X,
+  CreditCard,
+  User,
+  Bus,
+  Briefcase,
+  GraduationCap,
+  Percent,
+  HelpCircle,
+  Sparkles,
+  Info,
+  CloudLightning,
+  CloudCheck,
+  Loader2
+} from 'lucide-react';
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CommentPulse v2 - IA de Análisis</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
-        
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #020617;
-            color: #f8fafc;
+// --- CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE ---
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'plan-quincenal-app';
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+let app, auth, db;
+if (firebaseConfig) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+// Iconos disponibles para los gastos
+const ICON_OPTIONS = [
+  { id: 'tax', component: Percent, label: 'Impuesto / Factura' },
+  { id: 'user', component: User, label: 'Personal / Estefani' },
+  { id: 'bus', component: Bus, label: 'Transporte / Pasaje' },
+  { id: 'card', component: CreditCard, label: 'Tarjeta / Crédito' },
+  { id: 'education', component: GraduationCap, label: 'Educación / Uni' },
+  { id: 'work', component: Briefcase, label: 'Trabajo / Negocio' },
+  { id: 'other', component: HelpCircle, label: 'Otro' }
+];
+
+const IconRenderer = ({ iconId, className = "w-5 h-5" }) => {
+  const option = ICON_OPTIONS.find(opt => opt.id === iconId) || ICON_OPTIONS[6];
+  const IconComponent = option.component;
+  return <IconComponent className={className} />;
+};
+
+const defaultState = {
+  ingresoQ1: 15000,
+  ingresoQ2: 15000,
+  gastosQ1: [
+    { id: 'q1-1', nombre: 'IMPUESTO', monto: 2000, pagado: true, icono: 'tax' },
+    { id: 'q1-2', nombre: 'ESTEFANI', monto: 3000, pagado: false, icono: 'user' },
+    { id: 'q1-3', nombre: 'PASAJE', monto: 1200, pagado: false, icono: 'bus' },
+    { id: 'q1-4', nombre: 'CREDIMA', monto: 2500, pagado: false, icono: 'card' },
+    { id: 'q1-5', nombre: 'UNI', monto: 2500, pagado: false, icono: 'education' },
+  ],
+  gastosQ2: [
+    { id: 'q2-1', nombre: 'IMPUESTO', monto: 2000, pagado: false, icono: 'tax' },
+    { id: 'q2-2', nombre: 'ESTEFANI', monto: 3000, pagado: false, icono: 'user' },
+    { id: 'q2-3', nombre: 'PASAJE', monto: 1200, pagado: false, icono: 'bus' },
+    { id: 'q2-4', nombre: 'TARJETA', monto: 4000, pagado: false, icono: 'card' },
+    { id: 'q2-5', nombre: 'PRÉSTAMO', monto: 3500, pagado: false, icono: 'card' },
+  ],
+  metaAhorro: 5000,
+  ahorrosDistribuidos: [
+    { id: 'ah-1', nombre: 'Fondo de Emergencia', actual: 1500, meta: 3000 },
+    { id: 'ah-2', nombre: 'Vacaciones', actual: 800, meta: 2000 },
+  ]
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [state, setState] = useState(defaultState);
+
+  // Estados de edición rápidos
+  const [editIngresoQ1, setEditIngresoQ1] = useState(false);
+  const [ingresoQ1Val, setIngresoQ1Val] = useState(defaultState.ingresoQ1);
+  
+  const [editIngresoQ2, setEditIngresoQ2] = useState(false);
+  const [ingresoQ2Val, setIngresoQ2Val] = useState(defaultState.ingresoQ2);
+
+  const [editMetaAhorro, setEditMetaAhorro] = useState(false);
+  const [metaAhorroVal, setMetaAhorroVal] = useState(defaultState.metaAhorro);
+
+  // Estados para nuevos registros de gastos
+  const [nuevoGasto, setNuevoGasto] = useState({
+    nombre: '',
+    monto: '',
+    icono: 'other',
+    quincena: 'Q1'
+  });
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Estado para nuevas metas de ahorro
+  const [nuevoAhorro, setNuevoAhorro] = useState({ nombre: '', meta: '', actual: '' });
+  const [showAddAhorro, setShowAddAhorro] = useState(false);
+
+  // 1. Inicialización de Autenticación Invisible
+  useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
+    const initAuth = async () => {
+      try {
+        if (initialAuthToken) {
+          await signInWithCustomToken(auth, initialAuthToken);
+        } else {
+          await signInAnonymously(auth);
         }
+      } catch (e) {
+        console.error("Error en la autenticación silenciosa:", e);
+      }
+    };
 
-        .glass-card {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Sincronización en tiempo real con Firestore
+  useEffect(() => {
+    if (!user || !db) return;
+
+    // Ruta estricta de datos privados: /artifacts/{appId}/users/{userId}/finances/plan_data
+    const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'finances', 'plan_data');
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const cloudData = docSnap.data();
+        setState(cloudData);
+        setIngresoQ1Val(cloudData.ingresoQ1 || 0);
+        setIngresoQ2Val(cloudData.ingresoQ2 || 0);
+        setMetaAhorroVal(cloudData.metaAhorro || 0);
+      } else {
+        // Inicializar documento en la nube si es la primera vez
+        setDoc(docRef, defaultState).catch(err => console.error("Error inicializando:", err));
+      }
+    }, (error) => {
+      console.error("Error al escuchar cambios de Firestore:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Helper unificado para actualizar el estado localmente + empujar a la nube con feedback visual
+  const updateState = async (updaterFn) => {
+    // Aplicamos actualización local para respuesta instantánea (Optimistic UI)
+    const nextState = updaterFn(state);
+    setState(nextState);
+
+    if (user && db) {
+      setSyncing(true);
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'finances', 'plan_data');
+        await setDoc(docRef, nextState);
+      } catch (error) {
+        console.error("Error de sincronización con la nube:", error);
+      } finally {
+        setTimeout(() => setSyncing(false), 500); // Pequeño delay de suavizado
+      }
+    }
+  };
+
+  // Funciones de Actualización de Ingresos
+  const guardarIngresoQ1 = () => {
+    updateState(prev => ({ ...prev, ingresoQ1: Number(ingresoQ1Val) || 0 }));
+    setEditIngresoQ1(false);
+  };
+
+  const guardarIngresoQ2 = () => {
+    updateState(prev => ({ ...prev, ingresoQ2: Number(ingresoQ2Val) || 0 }));
+    setEditIngresoQ2(false);
+  };
+
+  const guardarMetaAhorro = () => {
+    updateState(prev => ({ ...prev, metaAhorro: Number(metaAhorroVal) || 0 }));
+    setEditMetaAhorro(false);
+  };
+
+  // Marcar/Desmarcar Gastos completados
+  const togglePagoGasto = (quincena, id) => {
+    const key = quincena === 'Q1' ? 'gastosQ1' : 'gastosQ2';
+    updateState(prev => ({
+      ...prev,
+      [key]: prev[key].map(g => g.id === id ? { ...g, pagado: !g.pagado } : g)
+    }));
+  };
+
+  // Eliminar Gastos
+  const eliminarGasto = (quincena, id) => {
+    const key = quincena === 'Q1' ? 'gastosQ1' : 'gastosQ2';
+    updateState(prev => ({
+      ...prev,
+      [key]: prev[key].filter(g => g.id !== id)
+    }));
+  };
+
+  // Agregar Gasto
+  const handleAgregarGasto = (e) => {
+    e.preventDefault();
+    if (!nuevoGasto.nombre || !nuevoGasto.monto) return;
+
+    const key = nuevoGasto.quincena === 'Q1' ? 'gastosQ1' : 'gastosQ2';
+    const nuevoItem = {
+      id: 'gasto-' + Date.now(),
+      nombre: nuevoGasto.nombre.toUpperCase(),
+      monto: Number(nuevoGasto.monto) || 0,
+      pagado: false,
+      icono: nuevoGasto.icono
+    };
+
+    updateState(prev => ({
+      ...prev,
+      [key]: [...prev[key], nuevoItem]
+    }));
+
+    setNuevoGasto({ nombre: '', monto: '', icono: 'other', quincena: nuevoGasto.quincena });
+    setShowAddModal(false);
+  };
+
+  // Agregar Alcancía de Ahorro
+  const handleAgregarAhorro = (e) => {
+    e.preventDefault();
+    if (!nuevoAhorro.nombre || !nuevoAhorro.meta) return;
+
+    const nuevoItem = {
+      id: 'ahorro-' + Date.now(),
+      nombre: nuevoAhorro.nombre,
+      actual: Number(nuevoAhorro.actual) || 0,
+      meta: Number(nuevoAhorro.meta) || 0
+    };
+
+    updateState(prev => ({
+      ...prev,
+      ahorrosDistribuidos: [...(prev.ahorrosDistribuidos || []), nuevoItem]
+    }));
+
+    setNuevoAhorro({ nombre: '', meta: '', actual: '' });
+    setShowAddAhorro(false);
+  };
+
+  // Actualizar ahorro acumulado en una alcancía (+ / -)
+  const modificarAhorroActual = (id, incremento) => {
+    updateState(prev => ({
+      ...prev,
+      ahorrosDistribuidos: (prev.ahorrosDistribuidos || []).map(ah => {
+        if (ah.id === id) {
+          const nuevoMonto = Math.max(0, ah.actual + incremento);
+          return { ...ah, actual: nuevoMonto };
         }
+        return ah;
+      })
+    }));
+  };
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-        }
+  // Eliminar Alcancía de Ahorro
+  const eliminarAhorro = (id) => {
+    updateState(prev => ({
+      ...prev,
+      ahorrosDistribuidos: (prev.ahorrosDistribuidos || []).filter(ah => ah.id !== id)
+    }));
+  };
 
-        .shimmer {
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
-            background-size: 200% 100%;
-            animation: shimmer 2s infinite;
-        }
+  // Resetear todo a valores iniciales
+  const restaurarPorDefecto = () => {
+    updateState(() => defaultState);
+  };
 
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
+  // Cálculos de Totales
+  const totalGastosQ1 = (state.gastosQ1 || []).reduce((acc, curr) => acc + curr.monto, 0);
+  const totalGastosQ2 = (state.gastosQ2 || []).reduce((acc, curr) => acc + curr.monto, 0);
 
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #38bdf8;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
+  const saldoLimpioQ1 = (state.ingresoQ1 || 0) - totalGastosQ1;
+  const saldoLimpioQ2 = (state.ingresoQ2 || 0) - totalGastosQ2;
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="min-h-screen pb-20">
+  const ingresoTotalMensual = (state.ingresoQ1 || 0) + (state.ingresoQ2 || 0);
+  const totalGastosMensual = totalGastosQ1 + totalGastosQ2;
+  const ahorroMensualReal = ingresoTotalMensual - totalGastosMensual;
 
-    <div class="container mx-auto px-4 pt-12 max-w-4xl">
-        <!-- Hero Section -->
-        <div class="text-center mb-12">
-            <div class="inline-block px-4 py-1.5 mb-4 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-sm font-semibold tracking-wide">
-                IMPULSADO POR GEMINI 2.5
-            </div>
-            <h1 class="text-6xl font-black mb-6 tracking-tight">Comment<span class="text-sky-500">Pulse</span></h1>
-            <p class="text-slate-400 text-lg max-w-2xl mx-auto">
-                Analiza el sentimiento, los temas tendencia y los comentarios de cualquier video pegando el enlace abajo.
-            </p>
+  // Formateador de Moneda
+  const formatMoney = (val) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(val);
+  };
+
+  // Pantalla de Carga Inicial
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl flex flex-col items-center max-w-sm text-center">
+          <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
+          <h3 className="font-extrabold text-slate-900 text-lg mb-1">Cargando tus Finanzas</h3>
+          <p className="text-xs text-slate-500">Conectando con tu base de datos segura y descargando tu plan financiero...</p>
         </div>
+      </div>
+    );
+  }
 
-        <!-- Input Deck -->
-        <div class="glass-card rounded-3xl p-2 mb-12 shadow-2xl overflow-hidden relative">
-            <div class="flex flex-col md:flex-row gap-2">
-                <input type="text" id="videoUrl" 
-                    placeholder="Pega el link del video o live aquí..." 
-                    class="flex-grow bg-transparent px-6 py-5 text-white focus:outline-none placeholder:text-slate-600 text-lg">
-                <button onclick="startAnalysis()" id="btnAction" class="gradient-bg hover:opacity-90 text-white font-bold px-10 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-sky-500/20">
-                    <span id="btnText">Analizar</span>
-                    <i class="fas fa-arrow-right" id="btnIcon"></i>
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16">
+      
+      {/* HEADER PRINCIPAL */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-md shadow-emerald-200">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">PLAN QUINCENAL</h1>
+              <p className="text-xs text-slate-500 font-medium">Organiza tus gastos y controla tu dinero cada quincena</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Estado de Sincronización en la Nube */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+              syncing 
+                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              {syncing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Nube Sincronizada
+                </>
+              )}
+            </div>
+
+            <button 
+              onClick={restaurarPorDefecto}
+              className="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all cursor-pointer"
+            >
+              Reiniciar
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 mt-8 space-y-8">
+        
+        {/* FILA DE QUINCENAS (Q1 & Q2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* QUINCENA 1 - DÍA 15 */}
+          <section className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div>
+              {/* Encabezado Q1 */}
+              <div className="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-500/30 p-1.5 rounded-lg text-white font-bold text-sm w-8 h-8 flex items-center justify-center">15</div>
+                  <div>
+                    <h2 className="font-extrabold tracking-wide text-base">QUINCENA 1 — DÍA 15</h2>
+                    <p className="text-xs text-emerald-100">Gastos primera mitad del mes</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setShowAddModal(true); setNuevoGasto(prev => ({ ...prev, quincena: 'Q1' })); }}
+                  className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Agregar
                 </button>
-            </div>
-        </div>
+              </div>
 
-        <!-- Progress State -->
-        <div id="loadingUI" class="hidden space-y-6 mb-12 animate-pulse">
-            <div class="glass-card p-8 rounded-3xl text-center">
-                <div class="spinner mx-auto mb-4"></div>
-                <h3 class="text-xl font-bold text-sky-400">La IA está procesando el video...</h3>
-                <p class="text-slate-500 text-sm mt-2">Estamos buscando datos reales y generando el reporte estadístico.</p>
-            </div>
-        </div>
-
-        <!-- Error Toast -->
-        <div id="errorToast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 glass-card border-red-500/50 p-4 rounded-2xl flex items-center gap-3 z-50 text-red-200 shadow-2xl">
-            <i class="fas fa-circle-exclamation text-red-500"></i>
-            <span id="errorMsg">Ocurrió un error inesperado.</span>
-            <button onclick="hideError()" class="ml-4 opacity-50 hover:opacity-100 text-xl">&times;</button>
-        </div>
-
-        <!-- Main Dashboard -->
-        <div id="dashboard" class="hidden space-y-8">
-            
-            <!-- Key Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass-card p-6 rounded-2xl">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Sentimiento</p>
-                    <div class="flex items-center justify-between">
-                        <span id="statSentiment" class="text-2xl font-bold">-</span>
-                        <span id="statEmoji" class="text-3xl"></span>
-                    </div>
+              {/* Ingreso Estimado Q1 */}
+              <div className="p-6 bg-emerald-50/50 border-b border-emerald-100/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Ingreso Estimado</p>
+                    {editIngresoQ1 ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-emerald-700 font-bold">$</span>
+                        <input 
+                          type="number" 
+                          value={ingresoQ1Val} 
+                          onChange={(e) => setIngresoQ1Val(e.target.value)} 
+                          className="w-28 border border-emerald-300 rounded px-1.5 py-0.5 text-sm font-bold text-slate-800 focus:outline-emerald-500"
+                        />
+                        <button onClick={guardarIngresoQ1} className="bg-emerald-600 text-white p-1 rounded hover:bg-emerald-700">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { setEditIngresoQ1(false); setIngresoQ1Val(state.ingresoQ1); }} className="bg-rose-500 text-white p-1 rounded hover:bg-rose-600">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-extrabold text-emerald-600">{formatMoney(state.ingresoQ1 || 0)}</span>
+                        <button onClick={() => setEditIngresoQ1(true)} className="text-slate-400 hover:text-emerald-600 p-1 rounded transition-colors cursor-pointer">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Comentarios</p>
-                    <span id="statCount" class="text-3xl font-bold text-sky-400">0</span>
-                </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Nivel de Hype</p>
-                    <span id="statHype" class="text-3xl font-bold text-indigo-400">78%</span>
-                </div>
-            </div>
+              </div>
 
-            <!-- Analysis Row -->
-            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                <!-- Topics -->
-                <div class="lg:col-span-2 space-y-4">
-                    <h2 class="text-xl font-bold px-2 flex items-center gap-2">
-                        <i class="fas fa-fire text-orange-500"></i>
-                        Temas Calientes
-                    </h2>
-                    <div id="topicsList" class="space-y-3">
-                        <!-- Dynamic -->
-                    </div>
-                </div>
+              {/* Gastos Q1 */}
+              <div className="p-6">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Lista de Gastos</p>
+                <div className="space-y-3.5">
+                  {(!state.gastosQ1 || state.gastosQ1.length === 0) ? (
+                    <p className="text-center text-slate-400 py-6 text-sm italic">No hay gastos agregados en esta quincena.</p>
+                  ) : (
+                    state.gastosQ1.map((gasto) => (
+                      <div 
+                        key={gasto.id} 
+                        className={`group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 ${
+                          gasto.pagado 
+                            ? 'bg-slate-50/70 border-slate-100 opacity-60' 
+                            : 'bg-white border-slate-200/70 hover:border-emerald-200 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          {/* Botón check de pagado */}
+                          <button 
+                            onClick={() => togglePagoGasto('Q1', gasto.id)}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+                              gasto.pagado 
+                                ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                : 'border-slate-300 hover:border-emerald-500 text-transparent hover:text-emerald-400'
+                            }`}
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                          </button>
 
-                <!-- Live-Like Comments -->
-                <div class="lg:col-span-3 space-y-4">
-                    <h2 class="text-xl font-bold px-2 flex items-center gap-2">
-                        <i class="fas fa-comments text-sky-500"></i>
-                        Análisis Detallado
-                    </h2>
-                    <div class="glass-card rounded-2xl overflow-hidden border-slate-800">
-                        <div id="commentsFeed" class="divide-y divide-slate-800/50 max-h-[500px] overflow-y-auto">
-                            <!-- Dynamic -->
+                          {/* Icono del Gasto */}
+                          <div className={`p-2 rounded-xl ${gasto.pagado ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <IconRenderer iconId={gasto.icono} />
+                          </div>
+
+                          {/* Nombre del Gasto */}
+                          <div className="truncate">
+                            <span className={`block font-extrabold text-sm tracking-wide ${gasto.pagado ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                              {gasto.nombre}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Quincena 1</span>
+                          </div>
                         </div>
-                    </div>
+
+                        {/* Monto y Botón Eliminar */}
+                        <div className="flex items-center gap-3">
+                          <span className={`font-black text-sm ${gasto.pagado ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                            {formatMoney(gasto.monto)}
+                          </span>
+                          <button 
+                            onClick={() => eliminarGasto('Q1', gasto.id)}
+                            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                            title="Eliminar gasto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+              </div>
             </div>
+
+            {/* Totales Q1 */}
+            <div className="border-t border-slate-100 p-6 bg-slate-50/50 space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">TOTAL GASTOS</span>
+                <span className="text-base font-extrabold text-emerald-600">{formatMoney(totalGastosQ1)}</span>
+              </div>
+              
+              <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
+                <div>
+                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">SALDO LIMPIO</p>
+                  <p className="text-2xl font-black tracking-tight">{formatMoney(saldoLimpioQ1)}</p>
+                </div>
+                <div className={`p-2.5 rounded-full ${saldoLimpioQ1 >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+
+          {/* QUINCENA 2 - DÍA 30 */}
+          <section className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div>
+              {/* Encabezado Q2 */}
+              <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-500/30 p-1.5 rounded-lg text-white font-bold text-sm w-8 h-8 flex items-center justify-center">30</div>
+                  <div>
+                    <h2 className="font-extrabold tracking-wide text-base">QUINCENA 2 — DÍA 30</h2>
+                    <p className="text-xs text-blue-100">Gastos segunda mitad del mes</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setShowAddModal(true); setNuevoGasto(prev => ({ ...prev, quincena: 'Q2' })); }}
+                  className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Agregar
+                </button>
+              </div>
+
+              {/* Ingreso Estimado Q2 */}
+              <div className="p-6 bg-blue-50/50 border-b border-blue-100/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Ingreso Estimado</p>
+                    {editIngresoQ2 ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-blue-700 font-bold">$</span>
+                        <input 
+                          type="number" 
+                          value={ingresoQ2Val} 
+                          onChange={(e) => setIngresoQ2Val(e.target.value)} 
+                          className="w-28 border border-blue-300 rounded px-1.5 py-0.5 text-sm font-bold text-slate-800 focus:outline-blue-500"
+                        />
+                        <button onClick={guardarIngresoQ2} className="bg-blue-600 text-white p-1 rounded hover:bg-blue-700">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { setEditIngresoQ2(false); setIngresoQ2Val(state.ingresoQ2); }} className="bg-rose-500 text-white p-1 rounded hover:bg-rose-600">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-extrabold text-blue-600">{formatMoney(state.ingresoQ2 || 0)}</span>
+                        <button onClick={() => setEditIngresoQ2(true)} className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors cursor-pointer">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Gastos Q2 */}
+              <div className="p-6">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Lista de Gastos</p>
+                <div className="space-y-3.5">
+                  {(!state.gastosQ2 || state.gastosQ2.length === 0) ? (
+                    <p className="text-center text-slate-400 py-6 text-sm italic">No hay gastos agregados en esta quincena.</p>
+                  ) : (
+                    state.gastosQ2.map((gasto) => (
+                      <div 
+                        key={gasto.id} 
+                        className={`group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 ${
+                          gasto.pagado 
+                            ? 'bg-slate-50/70 border-slate-100 opacity-60' 
+                            : 'bg-white border-slate-200/70 hover:border-blue-200 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          {/* Botón check de pagado */}
+                          <button 
+                            onClick={() => togglePagoGasto('Q2', gasto.id)}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+                              gasto.pagado 
+                                ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                : 'border-slate-300 hover:border-blue-500 text-transparent hover:text-blue-400'
+                            }`}
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3px]" />
+                          </button>
+
+                          {/* Icono del Gasto */}
+                          <div className={`p-2 rounded-xl ${gasto.pagado ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}>
+                            <IconRenderer iconId={gasto.icono} />
+                          </div>
+
+                          {/* Nombre del Gasto */}
+                          <div className="truncate">
+                            <span className={`block font-extrabold text-sm tracking-wide ${gasto.pagado ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                              {gasto.nombre}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Quincena 2</span>
+                          </div>
+                        </div>
+
+                        {/* Monto y Botón Eliminar */}
+                        <div className="flex items-center gap-3">
+                          <span className={`font-black text-sm ${gasto.pagado ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                            {formatMoney(gasto.monto)}
+                          </span>
+                          <button 
+                            onClick={() => eliminarGasto('Q2', gasto.id)}
+                            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                            title="Eliminar gasto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Totales Q2 */}
+            <div className="border-t border-slate-100 p-6 bg-slate-50/50 space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <span className="text-xs font-extrabold uppercase text-slate-500 tracking-wider">TOTAL GASTOS</span>
+                <span className="text-base font-extrabold text-blue-600">{formatMoney(totalGastosQ2)}</span>
+              </div>
+              
+              <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
+                <div>
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">SALDO LIMPIO</p>
+                  <p className="text-2xl font-black tracking-tight">{formatMoney(saldoLimpioQ2)}</p>
+                </div>
+                <div className={`p-2.5 rounded-full ${saldoLimpioQ2 >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </section>
+
         </div>
+
+        {/* RESUMEN MENSUAL */}
+        <section className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+          <h2 className="text-xs font-black tracking-widest text-slate-400 uppercase mb-6 text-center">RESUMEN MENSUAL</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Ingreso Total */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">INGRESO TOTAL</p>
+                <p className="text-xl font-black text-slate-800">{formatMoney(ingresoTotalMensual)}</p>
+              </div>
+            </div>
+
+            {/* Gastos Totales */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TOTAL GASTOS</p>
+                <p className="text-xl font-black text-slate-800">{formatMoney(totalGastosMensual)}</p>
+              </div>
+            </div>
+
+            {/* Capacidad de Ahorro */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                <PiggyBank className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">AHORRO DISPONIBLE</p>
+                <p className="text-xl font-black text-slate-800">{formatMoney(ahorroMensualReal)}</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* SECCIÓN DE AHORRO & ALCANCÍAS */}
+        <section className="bg-gradient-to-br from-indigo-950 to-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          
+          <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-10 pointer-events-none">
+            <PiggyBank className="w-80 h-80" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/10 p-2.5 rounded-2xl text-amber-400">
+                  <PiggyBank className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black tracking-tight uppercase">Control y Metas de Ahorro</h2>
+                  <p className="text-xs text-slate-300">Monitorea tus metas con tus excedentes mensuales.</p>
+                </div>
+              </div>
+
+              {/* Meta de Ahorro Configurable */}
+              <div className="bg-white/5 px-4 py-2.5 rounded-2xl border border-white/10 flex items-center gap-3">
+                <div>
+                  <p className="text-[9px] font-black tracking-widest text-slate-300 uppercase">Meta Mensual General</p>
+                  {editMetaAhorro ? (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <input 
+                        type="number" 
+                        value={metaAhorroVal} 
+                        onChange={(e) => setMetaAhorroVal(e.target.value)} 
+                        className="w-20 bg-slate-800 text-white text-xs font-bold rounded px-1.5 py-0.5 border border-white/20 focus:outline-none"
+                      />
+                      <button onClick={guardarMetaAhorro} className="bg-emerald-500 hover:bg-emerald-600 text-white p-0.5 rounded">
+                        <Check className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-amber-400">{formatMoney(state.metaAhorro || 0)}</span>
+                      <button onClick={() => setEditMetaAhorro(true)} className="text-slate-300 hover:text-white">
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Barra de Progreso Global */}
+            <div className="mb-8">
+              <div className="flex justify-between text-xs text-slate-300 mb-2 font-semibold">
+                <span>Progreso hacia Meta de Ahorro ({formatMoney(ahorroMensualReal)} de {formatMoney(state.metaAhorro || 0)})</span>
+                <span>{Math.min(100, Math.round((ahorroMensualReal / (state.metaAhorro || 1)) * 100))}%</span>
+              </div>
+              <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden">
+                <div 
+                  className="bg-amber-400 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (ahorroMensualReal / (state.metaAhorro || 1)) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Alcancías Distribuidas */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-black tracking-wider uppercase text-slate-300">Mis Alcancías / Objetivos de Ahorro</h3>
+                <button 
+                  onClick={() => setShowAddAhorro(true)}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3px]" /> Nueva Alcancía
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(!state.ahorrosDistribuidos || state.ahorrosDistribuidos.length === 0) ? (
+                  <div className="col-span-2 text-center py-6 text-sm text-slate-400 border border-dashed border-white/10 rounded-2xl">
+                    Aún no has creado alcancías de ahorro específicas.
+                  </div>
+                ) : (
+                  state.ahorrosDistribuidos.map((alcancia) => {
+                    const porcentaje = Math.min(100, Math.round((alcancia.actual / (alcancia.meta || 1)) * 100));
+                    return (
+                      <div key={alcancia.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between">
+                        
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-white tracking-wide">{alcancia.nombre}</h4>
+                            <p className="text-xs text-amber-300 font-bold mt-0.5">
+                              {formatMoney(alcancia.actual)} / <span className="text-slate-400">{formatMoney(alcancia.meta)}</span>
+                            </p>
+                          </div>
+                          
+                          <button 
+                            onClick={() => eliminarAhorro(alcancia.id)}
+                            className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer"
+                            title="Eliminar Alcancía"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Barra de progreso de la alcancía */}
+                        <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-3">
+                          <div 
+                            className="bg-emerald-400 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${porcentaje}%` }}
+                          ></div>
+                        </div>
+
+                        {/* Controles para sumar/restar fondos a esta alcancía */}
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => modificarAhorroActual(alcancia.id, -100)}
+                            className="bg-slate-900 hover:bg-slate-800 text-xs font-bold px-2 py-1 rounded-lg border border-white/10 cursor-pointer text-slate-200"
+                          >
+                            - $100
+                          </button>
+                          <button 
+                            onClick={() => modificarAhorroActual(alcancia.id, 100)}
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-2 py-1 rounded-lg cursor-pointer"
+                          >
+                            + $100
+                          </button>
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* RECOMENDACIONES DINÁMICAS */}
+        <section className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="bg-emerald-500 text-white p-3 rounded-2xl mt-1 md:mt-0">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-emerald-800 font-black tracking-wide text-base uppercase mb-1">RECOMENDACIÓN DE AHORRO</h3>
+              
+              {ahorroMensualReal >= 2000 ? (
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  ¡Excelente! Tu capacidad de ahorro mensual es de <strong className="text-emerald-700">{formatMoney(ahorroMensualReal)}</strong>. 
+                  A este ritmo, en 1 año podrías acumular <strong className="text-emerald-700">{formatMoney(ahorroMensualReal * 12)}</strong> de ahorro. 
+                  ¡Sigue así manteniendo tus gastos controlados!
+                </p>
+              ) : (
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Tu ahorro mensual proyectado actual es de <strong className="text-amber-700">{formatMoney(ahorroMensualReal)}</strong>. 
+                  Intenta reducir al menos <strong className="text-emerald-700">$1,000 de gasto</strong> en la segunda quincena eliminando gastos hormiga, 
+                  así tu economía mensual mejorará sustancialmente y alcanzarás tu meta más rápido.
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="bg-white px-5 py-4 rounded-2xl border border-emerald-100 flex items-center gap-3 w-full md:w-auto self-stretch md:self-auto justify-center">
+            <Info className="w-5 h-5 text-emerald-500 shrink-0" />
+            <p className="text-xs text-slate-500 font-medium">
+              Intenta priorizar liquidar los montos de la segunda quincena para evitar intereses de tarjeta.
+            </p>
+          </div>
+        </section>
+
+      </main>
+
+      {/* MODAL PARA AGREGAR NUEVO GASTO */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden border border-slate-200 shadow-2xl">
+            
+            <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
+              <div>
+                <h3 className="font-extrabold text-base">Agregar Nuevo Gasto</h3>
+                <p className="text-xs text-slate-400">Inserta un nuevo egreso quincenal</p>
+              </div>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAgregarGasto} className="p-6 space-y-4">
+              
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Destino de la Quincena</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNuevoGasto(prev => ({ ...prev, quincena: 'Q1' }))}
+                    className={`py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer ${
+                      nuevoGasto.quincena === 'Q1'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    1ra Quincena (Día 15)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNuevoGasto(prev => ({ ...prev, quincena: 'Q2' }))}
+                    className={`py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer ${
+                      nuevoGasto.quincena === 'Q2'
+                        ? 'bg-blue-50 border-blue-500 text-blue-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    2da Quincena (Día 30)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Gasto</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Ej. Súper, Luz, Internet"
+                  value={nuevoGasto.nombre}
+                  onChange={(e) => setNuevoGasto(prev => ({ ...prev, nombre: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Monto ($)</label>
+                <input 
+                  type="number" 
+                  required
+                  placeholder="0.00"
+                  value={nuevoGasto.monto}
+                  onChange={(e) => setNuevoGasto(prev => ({ ...prev, monto: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5 font-bold">Icono Representativo</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {ICON_OPTIONS.map((opt) => {
+                    const IconComp = opt.component;
+                    return (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => setNuevoGasto(prev => ({ ...prev, icono: opt.id }))}
+                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                          nuevoGasto.icono === opt.id
+                            ? 'bg-slate-900 border-slate-900 text-white'
+                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                        }`}
+                        title={opt.label}
+                      >
+                        <IconComp className="w-5 h-5" />
+                        <span className="text-[8px] truncate max-w-full font-bold uppercase">{opt.id}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm tracking-wide transition-all cursor-pointer"
+                >
+                  Confirmar y Guardar
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA AGREGAR NUEVA ALCANCÍA */}
+      {showAddAhorro && (
+        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden border border-slate-200 shadow-2xl">
+            
+            <div className="bg-amber-500 text-slate-950 p-6 flex justify-between items-center">
+              <div>
+                <h3 className="font-extrabold text-base">Crear Nueva Alcancía</h3>
+                <p className="text-xs text-amber-950 font-medium">Asigna un propósito de ahorro específico</p>
+              </div>
+              <button 
+                onClick={() => setShowAddAhorro(false)}
+                className="text-amber-950 hover:text-white p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAgregarAhorro} className="p-6 space-y-4">
+              
+              <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Nombre de la Alcancía</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Ej. Reparaciones Auto, Viaje 2026"
+                  value={nuevoAhorro.nombre}
+                  onChange={(e) => setNuevoAhorro(prev => ({ ...prev, nombre: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Meta Total ($)</label>
+                  <input 
+                    type="number" 
+                    required
+                    placeholder="2000"
+                    value={nuevoAhorro.meta}
+                    onChange={(e) => setNuevoAhorro(prev => ({ ...prev, meta: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Fondo Inicial ($)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0"
+                    value={nuevoAhorro.actual}
+                    onChange={(e) => setNuevoAhorro(prev => ({ ...prev, actual: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm tracking-wide transition-all cursor-pointer"
+                >
+                  Crear Alcancía
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
     </div>
-
-    <script type="module">
-        const apiKey = ""; // La plataforma inyectará la llave aquí
-        
-        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    if (response.status === 429 && retries > 0) {
-                        await new Promise(r => setTimeout(r, backoff));
-                        return fetchWithRetry(url, options, retries - 1, backoff * 2);
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return await response.json();
-            } catch (err) {
-                if (retries > 0) {
-                    await new Promise(r => setTimeout(r, backoff));
-                    return fetchWithRetry(url, options, retries - 1, backoff * 2);
-                }
-                throw err;
-            }
-        }
-
-        window.startAnalysis = async function() {
-            const urlInput = document.getElementById('videoUrl').value.trim();
-            if (!urlInput) return showError("Por favor, ingresa un link válido.");
-
-            toggleUI(true);
-
-            const systemPrompt = `Eres un experto en análisis de datos de redes sociales (YouTube, Twitch, TikTok).
-            Usarás Google Search para encontrar información sobre el video en el link proporcionado.
-            Generarás un informe detallado en JSON sobre lo que la gente está comentando.
-            
-            Estructura obligatoria:
-            {
-                "sentimiento": "Positivo/Neutral/Crítico",
-                "emoji": "🔥/🤔/👎",
-                "total": "4.5k",
-                "hype": "85%",
-                "temas": [{"tag": "Calidad visual", "val": 90}, {"tag": "Opinión del autor", "val": 65}],
-                "comentarios": [
-                    {"u": "@Alex99", "t": "Esto es increíble, no esperaba ese final", "l": 120},
-                    {"u": "@Cami_Vlog", "t": "¿Alguien sabe qué canción suena al minuto 2?", "l": 45}
-                ]
-            }`;
-
-            try {
-                const payload = {
-                    contents: [{ parts: [{ text: `Analiza este video: ${urlInput}` }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    tools: [{ google_search: {} }],
-                    generationConfig: { responseMimeType: "application/json" }
-                };
-
-                const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const content = data.candidates[0].content.parts[0].text;
-                renderDashboard(JSON.parse(content));
-            } catch (err) {
-                console.error("Error final:", err);
-                showError("Error de conexión. Verifica el link o intenta en unos segundos.");
-            } finally {
-                toggleUI(false);
-            }
-        };
-
-        function renderDashboard(data) {
-            document.getElementById('statSentiment').innerText = data.sentimiento;
-            document.getElementById('statEmoji').innerText = data.emoji;
-            document.getElementById('statCount').innerText = data.total;
-            document.getElementById('statHype').innerText = data.hype;
-
-            // Render Topics
-            const topicsList = document.getElementById('topicsList');
-            topicsList.innerHTML = data.temas.map(item => `
-                <div class="glass-card p-4 rounded-xl">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-sm font-bold">${item.tag}</span>
-                        <span class="text-xs text-sky-400 font-mono">${item.val}%</span>
-                    </div>
-                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div class="gradient-bg h-full transition-all duration-1000" style="width: ${item.val}%"></div>
-                    </div>
-                </div>
-            `).join('');
-
-            // Render Comments
-            const feed = document.getElementById('commentsFeed');
-            feed.innerHTML = data.comentarios.map(c => `
-                <div class="p-5 hover:bg-white/5 transition-colors group">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-bold text-sky-500">
-                            ${c.u.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span class="font-bold text-slate-300 text-sm group-hover:text-white transition-colors">${c.u}</span>
-                    </div>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-3">${c.t}</p>
-                    <div class="flex items-center gap-4 text-[10px] text-slate-600 uppercase font-bold tracking-widest">
-                        <span class="flex items-center gap-1.5"><i class="fas fa-heart text-pink-500/50"></i> ${c.l}</span>
-                        <span>Responder</span>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('dashboard').classList.remove('hidden');
-        }
-
-        function toggleUI(isLoading) {
-            const btn = document.getElementById('btnAction');
-            const loadingUI = document.getElementById('loadingUI');
-            const dashboard = document.getElementById('dashboard');
-
-            if (isLoading) {
-                loadingUI.classList.remove('hidden');
-                dashboard.classList.add('hidden');
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-            } else {
-                loadingUI.classList.add('hidden');
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }
-        }
-
-        function showError(msg) {
-            const toast = document.getElementById('errorToast');
-            document.getElementById('errorMsg').innerText = msg;
-            toast.classList.remove('hidden');
-            setTimeout(hideError, 6000);
-        }
-
-        window.hideError = function() {
-            document.getElementById('errorToast').classList.add('hidden');
-        }
-    </script>
-</body>
-</html>
+  );
+}
 
 ```
