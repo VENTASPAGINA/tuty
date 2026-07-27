@@ -1,1153 +1,583 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plan Quincenal Inteligente</title>
-  
-  <!-- Tailwind CSS para el diseño visual -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Fuentes modernas -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <!-- Iconos de Lucide -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    /* Estilos personalizados para animaciones y scroll */
-    .custom-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Meta de Ahorro</title>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+body {
+    min-height: 100vh;
+    background: #f4f6f8;
+    color: #17202a;
+}
+.app {
+    max-width: 520px;
+    margin: auto;
+    min-height: 100vh;
+    background: #ffffff;
+}
+/* ENCABEZADO */
+.header {
+    background: linear-gradient(135deg, #111827, #263449);
+    color: white;
+    padding: 30px 22px 45px;
+    border-radius: 0 0 30px 30px;
+}
+.header h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+.header p {
+    color: #cbd5e1;
+}
+/* CONTENIDO */
+.content {
+    padding: 20px;
+    margin-top: -25px;
+}
+/* TARJETAS */
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+.card h2 {
+    font-size: 19px;
+    margin-bottom: 18px;
+}
+/* FORMULARIO */
+label {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 15px 0 7px;
+    color: #4b5563;
+}
+input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    background: #f9fafb;
+}
+input:focus {
+    border-color: #22c55e;
+}
+/* BOTONES */
+button {
+    width: 100%;
+    border: none;
+    border-radius: 13px;
+    padding: 15px;
+    margin-top: 18px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.btn-primary {
+    background: #22c55e;
+    color: white;
+}
+.btn-primary:hover {
+    background: #16a34a;
+}
+.btn-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+/* PROGRESO */
+.progress-card {
+    text-align: center;
+}
+.progress-circle {
+    width: 190px;
+    height: 190px;
+    margin: 20px auto;
+    border-radius: 50%;
+    background: conic-gradient(#22c55e 0%, #e5e7eb 0%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.progress-inner {
+    width: 145px;
+    height: 145px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+.progress-inner strong {
+    font-size: 32px;
+}
+.progress-inner span {
+    color: #6b7280;
+    font-size: 13px;
+}
+/* ESTADÍSTICAS */
+.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.stat {
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 15px;
+}
+.stat small {
+    color: #6b7280;
+    display: block;
+    margin-bottom: 6px;
+}
+.stat strong {
+    font-size: 18px;
+}
+/* COLORES */
+.green {
+    color: #16a34a;
+}
+.red {
+    color: #dc2626;
+}
+.blue {
+    color: #2563eb;
+}
+.orange {
+    color: #ea580c;
+}
+/* DEPÓSITO */
+.deposit-box {
+    display: flex;
+    gap: 10px;
+}
+.deposit-box input {
+    flex: 1;
+}
+.deposit-box button {
+    width: 100px;
+    margin-top: 0;
+}
+/* MENSAJE */
+.message {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #ecfdf5;
+    color: #166534;
+    font-size: 14px;
+    line-height: 1.5;
+}
+/* OCULTO */
+.hidden {
+    display: none;
+}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
-
-  <!-- PANTALLA DE CARGA INICIAL -->
-  <div id="loading-screen" class="fixed inset-0 bg-slate-50 z-50 flex flex-col items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-xl flex flex-col items-center max-w-sm text-center">
-      <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <h3 class="font-extrabold text-slate-900 text-lg mb-1">Cargando tus Finanzas</h3>
-      <p class="text-xs text-slate-500">Iniciando y preparando tu plan de ahorro...</p>
-    </div>
-  </div>
-
-  <!-- NOTIFICACIÓN DE MENSAJES (TOAST) -->
-  <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-2 pointer-events-none max-w-sm w-full px-4"></div>
-
-  <!-- HEADER PRINCIPAL -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      
-      <div class="flex items-center gap-3">
-        <div class="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-md shadow-emerald-200">
-          <i data-lucide="calendar" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">PLAN QUINCENAL</h1>
-          <p class="text-xs text-slate-500 font-medium">Organiza tus gastos y controla tu dinero cada quincena</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <!-- Indicador de estado de sincronización -->
-        <div id="sync-badge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200 transition-all duration-300">
-          <i id="sync-icon" data-lucide="smartphone" class="w-3.5 h-3.5 text-blue-600"></i> 
-          <span id="sync-text">Guardado en Celular</span>
-        </div>
-
-        <button onclick="restaurarPorDefecto()" class="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all cursor-pointer">
-          Restaurar Inicial
-        </button>
-      </div>
-
-    </div>
-  </header>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="max-w-6xl mx-auto px-4 mt-8 space-y-8">
-    
-    <!-- GRID DE LAS DOS QUINCENAS -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      
-      <!-- QUINCENA 1 - DÍA 15 -->
-      <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
-        <div>
-          <!-- Header Q1 -->
-          <div class="bg-emerald-600 text-white px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="bg-emerald-500/30 p-1.5 rounded-lg text-white font-bold text-sm w-8 h-8 flex items-center justify-center">15</div>
-              <div>
-                <h2 class="font-extrabold tracking-wide text-base">QUINCENA 1 — DÍA 15</h2>
-                <p class="text-xs text-emerald-100">Gastos primera mitad del mes</p>
-              </div>
-            </div>
-            <button onclick="abrirModalGasto('Q1')" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer">
-              <i data-lucide="plus" class="w-4 h-4"></i> Agregar
-            </button>
-          </div>
-
-          <!-- Ingreso Estimado Q1 -->
-          <div class="p-6 bg-emerald-50/50 border-b border-emerald-100/50 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                <i data-lucide="wallet" class="w-5 h-5"></i>
-              </div>
-              <div>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Ingreso Estimado</p>
-                <div id="q1-ingreso-container" class="flex items-center gap-2">
-                  <!-- Render dinámico aquí -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Listado Gastos Q1 -->
-          <div class="p-6">
-            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Lista de Gastos</p>
-            <div id="q1-gastos-list" class="space-y-3.5">
-              <!-- Carga dinámica de gastos -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Totales Q1 -->
-        <div class="border-t border-slate-100 p-6 bg-slate-50/50 space-y-4">
-          <div class="flex justify-between items-center px-2">
-            <span class="text-xs font-extrabold uppercase text-slate-500 tracking-wider">TOTAL GASTOS</span>
-            <span id="q1-total-gastos" class="text-base font-extrabold text-emerald-600">$0</span>
-          </div>
-          
-          <div class="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
-            <div>
-              <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">SALDO LIMPIO</p>
-              <p id="q1-saldo-limpio" class="text-2xl font-black tracking-tight">$0</p>
-            </div>
-            <div id="q1-saldo-badge" class="p-2.5 rounded-full bg-emerald-500/20 text-emerald-400">
-              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- QUINCENA 2 - DÍA 30 -->
-      <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
-        <div>
-          <!-- Header Q2 -->
-          <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="bg-blue-500/30 p-1.5 rounded-lg text-white font-bold text-sm w-8 h-8 flex items-center justify-center">30</div>
-              <div>
-                <h2 class="font-extrabold tracking-wide text-base">QUINCENA 2 — DÍA 30</h2>
-                <p class="text-xs text-blue-100">Gastos segunda mitad del mes</p>
-              </div>
-            </div>
-            <button onclick="abrirModalGasto('Q2')" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer">
-              <i data-lucide="plus" class="w-4 h-4"></i> Agregar
-            </button>
-          </div>
-
-          <!-- Ingreso Estimado Q2 -->
-          <div class="p-6 bg-blue-50/50 border-b border-blue-100/50 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <i data-lucide="wallet" class="w-5 h-5"></i>
-              </div>
-              <div>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Ingreso Estimado</p>
-                <div id="q2-ingreso-container" class="flex items-center gap-2">
-                  <!-- Render dinámico aquí -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Listado Gastos Q2 -->
-          <div class="p-6">
-            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Lista de Gastos</p>
-            <div id="q2-gastos-list" class="space-y-3.5">
-              <!-- Carga dinámica de gastos -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Totales Q2 -->
-        <div class="border-t border-slate-100 p-6 bg-slate-50/50 space-y-4">
-          <div class="flex justify-between items-center px-2">
-            <span class="text-xs font-extrabold uppercase text-slate-500 tracking-wider">TOTAL GASTOS</span>
-            <span id="q2-total-gastos" class="text-base font-extrabold text-blue-600">$0</span>
-          </div>
-          
-          <div class="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
-            <div>
-              <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">SALDO LIMPIO</p>
-              <p id="q2-saldo-limpio" class="text-2xl font-black tracking-tight">$0</p>
-            </div>
-            <div id="q2-saldo-badge" class="p-2.5 rounded-full bg-emerald-500/20 text-emerald-400">
-              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </div>
-
-    <!-- RESUMEN MENSUAL -->
-    <section class="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
-      <h2 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-6 text-center">RESUMEN MENSUAL</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <!-- Ingreso Total -->
-        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">INGRESO TOTAL</p>
-            <p id="resumen-ingreso" class="text-xl font-black text-slate-800">$0</p>
-          </div>
-        </div>
-
-        <!-- Gastos Totales -->
-        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
-            <i data-lucide="credit-card" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">TOTAL GASTOS</p>
-            <p id="resumen-gastos" class="text-xl font-black text-slate-800">$0</p>
-          </div>
-        </div>
-
-        <!-- Capacidad de Ahorro -->
-        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
-            <i data-lucide="piggy-bank" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">AHORRO DISPONIBLE</p>
-            <p id="resumen-ahorro" class="text-xl font-black text-slate-800">$0</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECCIÓN DE AHORRO Y ALCANCÍAS -->
-    <section class="bg-gradient-to-br from-indigo-950 to-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-      
-      <!-- Icono gigante de fondo estético -->
-      <div class="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-10 pointer-events-none">
-        <i data-lucide="piggy-bank" class="w-80 h-80"></i>
-      </div>
-
-      <div class="relative z-10">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-white/10">
-          <div class="flex items-center gap-3">
-            <div class="bg-white/10 p-2.5 rounded-2xl text-amber-400">
-              <i data-lucide="piggy-bank" class="w-6 h-6"></i>
-            </div>
-            <div>
-              <h2 class="text-lg font-black tracking-tight uppercase">Control y Metas de Ahorro</h2>
-              <p class="text-xs text-slate-300">Monitorea tus metas con tus excedentes mensuales.</p>
-            </div>
-          </div>
-
-          <!-- Meta de Ahorro General Configurable -->
-          <div class="bg-white/5 px-4 py-2.5 rounded-2xl border border-white/10 flex items-center gap-3">
-            <div>
-              <p class="text-[9px] font-black tracking-widest text-slate-300 uppercase">Meta Mensual General</p>
-              <div id="meta-ahorro-container" class="flex items-center gap-1.5 mt-0.5">
-                <!-- Render dinámico aquí -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Barra de Progreso Global -->
-        <div class="mb-8">
-          <div class="flex justify-between text-xs text-slate-300 mb-2 font-semibold">
-            <span id="progreso-ahorro-texto">Progreso hacia Meta de Ahorro ($0 de $0)</span>
-            <span id="progreso-ahorro-porcentaje">0%</span>
-          </div>
-          <div class="w-full bg-white/10 h-3 rounded-full overflow-hidden">
-            <div id="progreso-ahorro-barra" class="bg-amber-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-          </div>
-        </div>
-
-        <!-- Alcancías Distribuidas -->
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xs font-black tracking-wider uppercase text-slate-300">Mis Alcancías / Objetivos de Ahorro</h3>
-            <button onclick="abrirModalAhorro()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 cursor-pointer">
-              <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3px]"></i> Nueva Alcancía
-            </button>
-          </div>
-
-          <div id="alcancias-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Render de alcancías dinámicas -->
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- RECOMENDACIONES DINÁMICAS -->
-    <section class="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-      <div class="flex items-start gap-4 flex-1">
-        <div class="bg-emerald-500 text-white p-3 rounded-2xl mt-1 md:mt-0">
-          <i data-lucide="trending-up" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h3 class="text-emerald-800 font-black tracking-wide text-base uppercase mb-1">RECOMENDACIÓN DE AHORRO</h3>
-          <p id="recomendacion-texto" class="text-sm text-slate-600 leading-relaxed">
-            Calculando tus finanzas...
-          </p>
-        </div>
-      </div>
-      
-      <div class="bg-white px-5 py-4 rounded-2xl border border-emerald-100 flex items-center gap-3 w-full md:w-auto self-stretch md:self-auto justify-center">
-        <i data-lucide="info" class="w-5 h-5 text-emerald-500 shrink-0"></i>
-        <p class="text-xs text-slate-500 font-medium">
-          Prioriza liquidar la segunda quincena para evitar recargos o intereses.
+<body>
+<div class="app">
+    <header class="header">
+        <h1>💰 Mi Meta de Ahorro</h1>
+        <p>
+            Organiza tu dinero y alcanza tus objetivos.
         </p>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MODAL: AGREGAR GASTO -->
-  <div id="modal-gasto" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden border border-slate-200 shadow-2xl">
-      
-      <div class="bg-slate-900 text-white p-6 flex justify-between items-center">
-        <div>
-          <h3 class="font-extrabold text-base">Agregar Nuevo Gasto</h3>
-          <p class="text-xs text-slate-400">Inserta un nuevo egreso quincenal</p>
-        </div>
-        <button onclick="cerrarModalGasto()" class="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="form-gasto" onsubmit="guardarNuevoGasto(event)" class="p-6 space-y-4">
-        
-        <div>
-          <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Destino de la Quincena</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="btn-modal-q1" onclick="seleccionarQuincenaModal('Q1')" class="py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer">
-              1ra Quincena (Día 15)
+    </header>
+    <main class="content">
+        <!-- CREAR META -->
+        <section class="card">
+            <h2>🎯 Configura tu meta</h2>
+            <label>Nombre de tu meta</label>
+            <input
+                type="text"
+                id="nombreMeta"
+                placeholder="Ej: Comprar una motocicleta"
+            >
+            <label>¿Cuánto quieres ahorrar?</label>
+            <input
+                type="number"
+                id="meta"
+                placeholder="Ej: 100000"
+            >
+            <label>¿Cuánto tienes ahorrado actualmente?</label>
+            <input
+                type="number"
+                id="ahorrado"
+                placeholder="Ej: 10000"
+            >
+            <label>Fecha límite</label>
+            <input
+                type="date"
+                id="fechaMeta"
+            >
+            <button
+                class="btn-primary"
+                onclick="guardarMeta()"
+            >
+                💾 GUARDAR MI META
             </button>
-            <button type="button" id="btn-modal-q2" onclick="seleccionarQuincenaModal('Q2')" class="py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer">
-              2da Quincena (Día 30)
+        </section>
+        <!-- PANEL DE RESULTADOS -->
+        <section
+            class="card progress-card hidden"
+            id="panelResultados"
+        >
+            <h2 id="tituloMeta">
+                Mi meta
+            </h2>
+            <div
+                class="progress-circle"
+                id="progressCircle"
+            >
+                <div class="progress-inner">
+                    <strong id="porcentaje">
+                        0%
+                    </strong>
+                    <span>
+                        completado
+                    </span>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <small>🎯 Meta total</small>
+                    <strong
+                        id="resultadoMeta"
+                        class="blue"
+                    >
+                        $0
+                    </strong>
+                </div>
+                <div class="stat">
+                    <small>💰 Ahorrado</small>
+                    <strong
+                        id="resultadoAhorrado"
+                        class="green"
+                    >
+                        $0
+                    </strong>
+                </div>
+                <div class="stat">
+                    <small>📉 Falta</small>
+                    <strong
+                        id="resultadoFalta"
+                        class="red"
+                    >
+                        $0
+                    </strong>
+                </div>
+                <div class="stat">
+                    <small>📅 Días restantes</small>
+                    <strong
+                        id="diasRestantes"
+                        class="orange"
+                    >
+                        0
+                    </strong>
+                </div>
+            </div>
+            <div
+                class="message"
+                id="mensaje"
+            ></div>
+        </section>
+        <!-- CUÁNTO AHORRAR -->
+        <section
+            class="card hidden"
+            id="planAhorro"
+        >
+            <h2>📊 Tu plan de ahorro</h2>
+            <div class="stats">
+                <div class="stat">
+                    <small>Por día</small>
+                    <strong
+                        id="porDia"
+                        class="blue"
+                    >
+                        $0
+                    </strong>
+                </div>
+                <div class="stat">
+                    <small>Por semana</small>
+                    <strong
+                        id="porSemana"
+                        class="green"
+                    >
+                        $0
+                    </strong>
+                </div>
+                <div class="stat">
+                    <small>Por mes</small>
+                    <strong
+                        id="porMes"
+                        class="orange"
+                    >
+                        $0
+                    </strong>
+                </div>
+            </div>
+        </section>
+        <!-- REGISTRAR AHORRO -->
+        <section
+            class="card hidden"
+            id="panelDeposito"
+        >
+            <h2>➕ Registrar nuevo ahorro</h2>
+            <div class="deposit-box">
+                <input
+                    type="number"
+                    id="nuevoAhorro"
+                    placeholder="Cantidad"
+                >
+                <button
+                    class="btn-primary"
+                    onclick="agregarAhorro()"
+                >
+                    AGREGAR
+                </button>
+            </div>
+        </section>
+        <!-- ELIMINAR -->
+        <section
+            class="card hidden"
+            id="panelEliminar"
+        >
+            <button
+                class="btn-danger"
+                onclick="eliminarDatos()"
+            >
+                🗑️ ELIMINAR TODOS MIS DATOS
             </button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Gasto</label>
-          <input type="text" id="gasto-nombre" required placeholder="Ej. Súper, Luz, Internet" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Monto ($)</label>
-          <input type="number" id="gasto-monto" required placeholder="0" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5 font-bold">Icono Representativo</label>
-          <div class="grid grid-cols-4 gap-2" id="iconos-gasto-container">
-            <!-- Opciones de iconos renderizadas por JS -->
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm tracking-wide transition-all cursor-pointer">
-            Confirmar y Guardar
-          </button>
-        </div>
-
-      </form>
-
-    </div>
-  </div>
-
-  <!-- MODAL: AGREGAR ALCANCÍA -->
-  <div id="modal-ahorro" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden border border-slate-200 shadow-2xl">
-      
-      <div class="bg-amber-500 text-slate-950 p-6 flex justify-between items-center">
-        <div>
-          <h3 class="font-extrabold text-base">Crear Nueva Alcancía</h3>
-          <p class="text-xs text-amber-950 font-medium">Asigna un propósito de ahorro específico</p>
-        </div>
-        <button onclick="cerrarModalAhorro()" class="text-amber-950 hover:text-white p-1 rounded-lg cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <form id="form-ahorro" onsubmit="guardarNuevaAlcancia(event)" class="p-6 space-y-4">
-        
-        <div>
-          <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Nombre de la Alcancía</label>
-          <input type="text" id="ahorro-nombre" required placeholder="Ej. Fondo de Emergencia, Vacaciones" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Meta Total ($)</label>
-            <input type="number" id="ahorro-meta" required placeholder="3000" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800" />
-          </div>
-          <div>
-            <label class="block text-xs font-black text-slate-400 uppercase tracking-wider mb-1.5">Fondo Inicial ($)</label>
-            <input type="number" id="ahorro-inicial" placeholder="0" class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-800 focus:outline-slate-800" />
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm tracking-wide transition-all cursor-pointer">
-            Crear Alcancía
-          </button>
-        </div>
-
-      </form>
-
-    </div>
-  </div>
-
-  <!-- MODAL: CONFIRMACIÓN DE REINICIO -->
-  <div id="modal-confirm" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden border border-slate-200 shadow-2xl p-6 space-y-4 text-center">
-      <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
-        <i data-lucide="info" class="w-6 h-6"></i>
-      </div>
-      <div>
-        <h3 class="font-extrabold text-slate-900 text-lg">¿Restaurar valores iniciales?</h3>
-        <p class="text-xs text-slate-500 mt-1">Esta acción reemplazará todos tus ingresos, gastos agregados y alcancías por la plantilla predeterminada.</p>
-      </div>
-      <div class="flex gap-2.5 pt-2">
-        <button onclick="cerrarConfirm()" class="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer">Cancelar</button>
-        <button onclick="confirmarRestauracion()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold cursor-pointer">Restaurar todo</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================= -->
-  <!--                      SCRIPTS DE LÓGICA                     -->
-  <!-- ========================================================= -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // Intentar leer las variables del entorno
-    const firebaseConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
-    const appId = window.__app_id || 'plan-quincenal-hibrido';
-    const initialAuthToken = window.__initial_auth_token || null;
-
-    let app, auth, db;
-    let currentUser = null;
-    let dataLoaded = false;
-    let isCloudActive = false;
-
-    // Estado local principal
-    let state = {
-      ingresoQ1: 15000,
-      ingresoQ2: 15000,
-      gastosQ1: [],
-      gastosQ2: [],
-      metaAhorro: 5000,
-      ahorrosDistribuidos: []
-    };
-
-    const defaultState = {
-      ingresoQ1: 15000,
-      ingresoQ2: 15000,
-      gastosQ1: [
-        { id: 'q1-1', nombre: 'IMPUESTO', monto: 2000, pagado: true, icono: 'tax' },
-        { id: 'q1-2', nombre: 'ESTEFANI', monto: 3000, pagado: false, icono: 'user' },
-        { id: 'q1-3', nombre: 'PASAJE', monto: 1200, pagado: false, icono: 'bus' },
-        { id: 'q1-4', nombre: 'CREDIMA', monto: 2500, pagado: false, icono: 'card' },
-        { id: 'q1-5', nombre: 'UNI', monto: 2500, pagado: false, icono: 'education' },
-      ],
-      gastosQ2: [
-        { id: 'q2-1', nombre: 'IMPUESTO', monto: 2000, pagado: false, icono: 'tax' },
-        { id: 'q2-2', nombre: 'ESTEFANI', monto: 3000, pagado: false, icono: 'user' },
-        { id: 'q2-3', nombre: 'PASAJE', monto: 1200, pagado: false, icono: 'bus' },
-        { id: 'q2-4', text: 'TARJETA', nombre: 'TARJETA', monto: 4000, pagado: false, icono: 'card' },
-        { id: 'q2-5', nombre: 'PRÉSTAMO', monto: 3500, pagado: false, icono: 'card' },
-      ],
-      metaAhorro: 5000,
-      ahorrosDistribuidos: [
-        { id: 'ah-1', nombre: 'Fondo de Emergencia', actual: 1500, meta: 3000 },
-        { id: 'ah-2', nombre: 'Vacaciones', actual: 800, meta: 2000 },
-      ]
-    };
-
-    const ICON_OPTIONS = [
-      { id: 'tax', iconClass: 'percent', label: 'Impuesto' },
-      { id: 'user', iconClass: 'user', label: 'Estefani' },
-      { id: 'bus', iconClass: 'bus', label: 'Pasaje' },
-      { id: 'card', iconClass: 'credit-card', label: 'Crédito' },
-      { id: 'education', iconClass: 'graduation-cap', label: 'Uni' },
-      { id: 'work', iconClass: 'briefcase', label: 'Trabajo' },
-      { id: 'other', iconClass: 'help-circle', label: 'Otro' }
-    ];
-
-    let selectedQuincenaGasto = 'Q1';
-    let selectedIconoGasto = 'other';
-
-    // Inicializar Firebase condicionalmente para evitar bloqueos
-    if (firebaseConfig && firebaseConfig.apiKey) {
-      try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        isCloudActive = true;
-      } catch (e) {
-        console.warn("Fallo al inicializar Firebase. Operando de forma local.");
-        isCloudActive = false;
-      }
+        </section>
+    </main>
+</div>
+<script>
+/* FORMATO DE DINERO */
+function dinero(valor) {
+    return new Intl.NumberFormat(
+        "es-US",
+        {
+            style: "currency",
+            currency: "USD"
+        }
+    ).format(valor);
+}
+/* GUARDAR META */
+function guardarMeta() {
+    const nombre =
+        document.getElementById("nombreMeta").value;
+    const meta =
+        Number(document.getElementById("meta").value);
+    const ahorrado =
+        Number(document.getElementById("ahorrado").value);
+    const fecha =
+        document.getElementById("fechaMeta").value;
+    if (
+        nombre === "" ||
+        meta <= 0 ||
+        ahorrado < 0 ||
+        fecha === ""
+    ) {
+        alert(
+            "Completa todos los campos correctamente."
+        );
+        return;
     }
-
-    // Proceso de Carga Inteligente
-    const iniciarApp = async () => {
-      // Temporizador de seguridad: si Firebase tarda más de 2 segundos, activar Modo Local automáticamente
-      const safetyTimeout = setTimeout(() => {
-        if (!dataLoaded) {
-          console.warn("Firebase demoró demasiado. Activando almacenamiento local de respaldo.");
-          activarModoLocal();
-        }
-      }, 2000);
-
-      if (isCloudActive && auth) {
-        try {
-          if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-          } else {
-            await signInAnonymously(auth);
-          }
-        } catch (e) {
-          console.warn("Error de autenticación Firebase. Usando modo local.");
-          activarModoLocal();
-          clearTimeout(safetyTimeout);
-        }
-      } else {
-        activarModoLocal();
-        clearTimeout(safetyTimeout);
-      }
+    const datos = {
+        nombre: nombre,
+        meta: meta,
+        ahorrado: ahorrado,
+        fecha: fecha
     };
-
-    // Escuchador de estado Firebase
-    if (isCloudActive && auth) {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          currentUser = user;
-          conectarFirestore(user.uid);
-        } else {
-          activarModoLocal();
-        }
-      });
-    } else {
-      iniciarApp();
+    localStorage.setItem(
+        "miSistemaDeAhorro",
+        JSON.stringify(datos)
+    );
+    mostrarDatos();
+}
+/* MOSTRAR DATOS */
+function mostrarDatos() {
+    const datosGuardados =
+        localStorage.getItem(
+            "miSistemaDeAhorro"
+        );
+    if (!datosGuardados) {
+        return;
     }
-
-    // Conectar a Firestore
-    const conectarFirestore = (userId) => {
-      const docRef = doc(db, 'artifacts', appId, 'users', userId, 'finances', 'plan_data');
-
-      onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-          state = docSnap.data();
-        } else {
-          setDoc(docRef, defaultState).catch(err => console.error(err));
-          state = JSON.parse(JSON.stringify(defaultState));
-        }
-        dataLoaded = true;
-        document.getElementById('loading-screen').classList.add('hidden');
-        renderApp();
-      }, (error) => {
-        console.warn("Error en tiempo real de Firestore, usando LocalStorage.");
-        activarModoLocal();
-      });
-    };
-
-    // Modo Local de Respaldo instantáneo (Soluciona el bloqueo de carga)
-    const activarModoLocal = () => {
-      isCloudActive = false;
-      dataLoaded = true;
-      cargarLocalState();
-      
-      // Actualizar UI
-      const badge = document.getElementById('sync-badge');
-      const text = document.getElementById('sync-text');
-      const icon = document.getElementById('sync-icon');
-      
-      badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200";
-      text.innerText = "Guardado en Celular";
-      icon.setAttribute('data-lucide', 'smartphone');
-      
-      document.getElementById('loading-screen').classList.add('hidden');
-      renderApp();
-    };
-
-    const cargarLocalState = () => {
-      const saved = localStorage.getItem('plan_quincenal_local_db');
-      if (saved) {
-        try {
-          state = JSON.parse(saved);
-        } catch (e) {
-          state = JSON.parse(JSON.stringify(defaultState));
-        }
-      } else {
-        state = JSON.parse(JSON.stringify(defaultState));
-      }
-    };
-
-    const guardarLocalState = () => {
-      localStorage.setItem('plan_quincenal_local_db', JSON.stringify(state));
-    };
-
-    // Sincronizar Cambios
-    const pushChanges = async () => {
-      renderApp(); 
-      mostrarSincronizando(true);
-
-      if (isCloudActive && currentUser && db) {
-        try {
-          const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'finances', 'plan_data');
-          await setDoc(docRef, state);
-        } catch (error) {
-          console.error("Error al guardar en nube:", error);
-          guardarLocalState();
-        } finally {
-          setTimeout(() => mostrarSincronizando(false), 500);
-        }
-      } else {
-        guardarLocalState();
-        setTimeout(() => mostrarSincronizando(false), 300);
-      }
-    };
-
-    const mostrarSincronizando = (estaSincronizando) => {
-      const badge = document.getElementById('sync-badge');
-      const text = document.getElementById('sync-text');
-      if (!isCloudActive) {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-200";
-        text.innerText = "Guardado en Celular";
+    const datos =
+        JSON.parse(datosGuardados);
+    document.getElementById(
+        "nombreMeta"
+    ).value = datos.nombre;
+    document.getElementById(
+        "meta"
+    ).value = datos.meta;
+    document.getElementById(
+        "ahorrado"
+    ).value = datos.ahorrado;
+    document.getElementById(
+        "fechaMeta"
+    ).value = datos.fecha;
+    document.getElementById(
+        "panelResultados"
+    ).classList.remove("hidden");
+    document.getElementById(
+        "planAhorro"
+    ).classList.remove("hidden");
+    document.getElementById(
+        "panelDeposito"
+    ).classList.remove("hidden");
+    document.getElementById(
+        "panelEliminar"
+    ).classList.remove("hidden");
+    actualizarSistema(datos);
+}
+/* ACTUALIZAR TODO */
+function actualizarSistema(datos) {
+    const meta = datos.meta;
+    const ahorrado = datos.ahorrado;
+    let falta = meta - ahorrado;
+    if (falta < 0) {
+        falta = 0;
+    }
+    let porcentaje =
+        (ahorrado / meta) * 100;
+    if (porcentaje > 100) {
+        porcentaje = 100;
+    }
+    const hoy = new Date();
+    const fechaFinal =
+        new Date(datos.fecha);
+    const diferencia =
+        fechaFinal - hoy;
+    let dias = Math.ceil(
+        diferencia /
+        (1000 * 60 * 60 * 24)
+    );
+    if (dias < 0) {
+        dias = 0;
+    }
+    const ahorroDiario =
+        falta / dias;
+    const ahorroSemanal =
+        ahorroDiario * 7;
+    const ahorroMensual =
+        ahorroDiario * 30;
+    document.getElementById(
+        "tituloMeta"
+    ).innerText =
+        "🎯 " + datos.nombre;
+    document.getElementById(
+        "porcentaje"
+    ).innerText =
+        Math.round(porcentaje) + "%";
+    document.getElementById(
+        "resultadoMeta"
+    ).innerText =
+        dinero(meta);
+    document.getElementById(
+        "resultadoAhorrado"
+    ).innerText =
+        dinero(ahorrado);
+    document.getElementById(
+        "resultadoFalta"
+    ).innerText =
+        dinero(falta);
+    document.getElementById(
+        "diasRestantes"
+    ).innerText =
+        dias;
+    document.getElementById(
+        "porDia"
+    ).innerText =
+        dias > 0 ? dinero(ahorroDiario) : "$0";
+    document.getElementById(
+        "porSemana"
+    ).innerText =
+        dias > 0 ? dinero(ahorroSemanal) : "$0";
+    document.getElementById(
+        "porMes"
+    ).innerText =
+        dias > 0 ? dinero(ahorroMensual) : "$0";
+    document.getElementById(
+        "progressCircle"
+    ).style.background =
+        `conic-gradient(
+            #22c55e
+            ${porcentaje}%,
+            #e5e7eb
+            ${porcentaje}%
+        )`;
+    if (falta <= 0) {
+        document.getElementById(
+            "mensaje"
+        ).innerText =
+            "🎉 ¡Felicidades! Ya alcanzaste tu meta de ahorro.";
+    }
+    else {
+        document.getElementById(
+            "mensaje"
+        ).innerText =
+            "💪 Si mantienes este ritmo de ahorro, podrás alcanzar tu meta antes de la fecha límite.";
+    }
+}
+/* AGREGAR AHORRO */
+function agregarAhorro() {
+    const cantidad =
+        Number(
+            document.getElementById(
+                "nuevoAhorro"
+            ).value
+        );
+    if (cantidad <= 0) {
+        alert(
+            "Introduce una cantidad válida."
+        );
         return;
-      }
-
-      if (estaSincronizando) {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-amber-50 text-amber-700 border-amber-200";
-        text.innerText = "Sincronizando...";
-      } else {
-        badge.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-200";
-        text.innerText = "Nube Conectada";
-      }
-    };
-
-    // =========================================================
-    //                    MÉTODOS DE RENDERIZADO
-    // =========================================================
-    const formatMoney = (val) => {
-      return new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(val || 0);
-    };
-
-    const renderApp = () => {
-      renderIngreso('Q1');
-      renderIngreso('Q2');
-      renderMetaAhorro();
-
-      renderGastosList('Q1');
-      renderGastosList('Q2');
-
-      const totalGastosQ1 = (state.gastosQ1 || []).reduce((acc, curr) => acc + curr.monto, 0);
-      const totalGastosQ2 = (state.gastosQ2 || []).reduce((acc, curr) => acc + curr.monto, 0);
-
-      const saldoLimpioQ1 = (state.ingresoQ1 || 0) - totalGastosQ1;
-      const saldoLimpioQ2 = (state.ingresoQ2 || 0) - totalGastosQ2;
-
-      document.getElementById('q1-total-gastos').innerText = formatMoney(totalGastosQ1);
-      document.getElementById('q1-saldo-limpio').innerText = formatMoney(saldoLimpioQ1);
-      document.getElementById('q2-total-gastos').innerText = formatMoney(totalGastosQ2);
-      document.getElementById('q2-saldo-limpio').innerText = formatMoney(saldoLimpioQ2);
-
-      const q1Badge = document.getElementById('q1-saldo-badge');
-      if (saldoLimpioQ1 >= 0) {
-        q1Badge.className = "p-2.5 rounded-full bg-emerald-500/20 text-emerald-400";
-        q1Badge.innerHTML = `<i data-lucide="check-circle-2" class="w-6 h-6"></i>`;
-      } else {
-        q1Badge.className = "p-2.5 rounded-full bg-rose-500/20 text-rose-400";
-        q1Badge.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
-      }
-
-      const q2Badge = document.getElementById('q2-saldo-badge');
-      if (saldoLimpioQ2 >= 0) {
-        q2Badge.className = "p-2.5 rounded-full bg-emerald-500/20 text-emerald-400";
-        q2Badge.innerHTML = `<i data-lucide="check-circle-2" class="w-6 h-6"></i>`;
-      } else {
-        q2Badge.className = "p-2.5 rounded-full bg-rose-500/20 text-rose-400";
-        q2Badge.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
-      }
-
-      const ingresoTotal = (state.ingresoQ1 || 0) + (state.ingresoQ2 || 0);
-      const gastosTotales = totalGastosQ1 + totalGastosQ2;
-      const ahorroDisponible = ingresoTotal - gastosTotales;
-
-      document.getElementById('resumen-ingreso').innerText = formatMoney(ingresoTotal);
-      document.getElementById('resumen-gastos').innerText = formatMoney(gastosTotales);
-      document.getElementById('resumen-ahorro').innerText = formatMoney(ahorroDisponible);
-
-      const meta = state.metaAhorro || 1;
-      const porcentajeAhorro = Math.min(100, Math.round((ahorroDisponible / meta) * 100));
-      document.getElementById('progreso-ahorro-texto').innerText = `Progreso hacia Meta de Ahorro (${formatMoney(ahorroDisponible)} de ${formatMoney(state.metaAhorro)})`;
-      document.getElementById('progreso-ahorro-porcentaje').innerText = `${porcentajeAhorro}%`;
-      document.getElementById('progreso-ahorro-barra').style.width = `${porcentajeAhorro}%`;
-
-      renderAlcancias();
-
-      const recomTexto = document.getElementById('recomendacion-texto');
-      if (ahorroDisponible >= 2000) {
-        recomTexto.innerHTML = `¡Excelente! Tu capacidad de ahorro mensual es de <strong class="text-emerald-700">${formatMoney(ahorroDisponible)}</strong>. A este ritmo, en un año completo podrías acumular <strong class="text-emerald-700">${formatMoney(ahorroDisponible * 12)}</strong> de ahorro neto. ¡Sigue controlando tus egresos!`;
-      } else {
-        recomTexto.innerHTML = `Tu capacidad de ahorro proyectada actual es de <strong class="text-amber-700">${formatMoney(ahorroDisponible)}</strong>. Intenta reducir al menos <strong class="text-emerald-700">$1,000 en gastos</strong> en tu segunda quincena eliminando egresos innecesarios, así optimizarás tus finanzas mensuales.`;
-      }
-
-      lucide.createIcons();
-    };
-
-    const renderIngreso = (quincena) => {
-      const container = document.getElementById(`${quincena.toLowerCase()}-ingreso-container`);
-      const key = quincena === 'Q1' ? 'ingresoQ1' : 'ingresoQ2';
-      const editingKey = quincena === 'Q1' ? 'editIngresoQ1' : 'editIngresoQ2';
-
-      if (window[editingKey]) {
-        container.innerHTML = `
-          <span class="text-emerald-700 font-bold">$</span>
-          <input 
-            type="number" 
-            id="input-ingreso-${quincena}" 
-            value="${state[key] || 0}" 
-            class="w-28 border border-emerald-300 rounded px-1.5 py-0.5 text-sm font-bold text-slate-800 focus:outline-emerald-500"
-          />
-          <button onclick="guardarIngresoInput('${quincena}')" class="bg-emerald-600 text-white p-1 rounded hover:bg-emerald-700 cursor-pointer">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-          </button>
-          <button onclick="toggleEditarIngreso('${quincena}', false)" class="bg-rose-500 text-white p-1 rounded hover:bg-rose-600 cursor-pointer">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      } else {
-        container.innerHTML = `
-          <span class="text-xl font-extrabold ${quincena === 'Q1' ? 'text-emerald-600' : 'text-blue-600'}">${formatMoney(state[key] || 0)}</span>
-          <button onclick="toggleEditarIngreso('${quincena}', true)" class="text-slate-400 hover:text-emerald-600 p-1 rounded transition-colors cursor-pointer">
-            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
-          </button>
-        `;
-      }
-    };
-
-    const renderMetaAhorro = () => {
-      const container = document.getElementById('meta-ahorro-container');
-      if (window.editMetaAhorro) {
-        container.innerHTML = `
-          <input 
-            type="number" 
-            id="input-meta-ahorro" 
-            value="${state.metaAhorro || 0}" 
-            class="w-20 bg-slate-800 text-white text-xs font-bold rounded px-1.5 py-0.5 border border-white/20 focus:outline-none"
-          />
-          <button onclick="guardarMetaAhorroInput()" class="bg-emerald-500 hover:bg-emerald-600 text-white p-0.5 rounded cursor-pointer">
-            <i data-lucide="check" class="w-3 h-3"></i>
-          </button>
-        `;
-      } else {
-        container.innerHTML = `
-          <span class="text-sm font-bold text-amber-400">${formatMoney(state.metaAhorro || 0)}</span>
-          <button onclick="toggleEditarMetaAhorro(true)" class="text-slate-300 hover:text-white cursor-pointer">
-            <i data-lucide="edit-2" class="w-3 h-3"></i>
-          </button>
-        `;
-      }
-    };
-
-    const renderGastosList = (quincena) => {
-      const container = document.getElementById(`${quincena.toLowerCase()}-gastos-list`);
-      const gastos = quincena === 'Q1' ? state.gastosQ1 : state.gastosQ2;
-
-      if (!gastos || gastos.length === 0) {
-        container.innerHTML = `<p class="text-center text-slate-400 py-6 text-sm italic">No hay gastos agregados en esta quincena.</p>`;
-        return;
-      }
-
-      container.innerHTML = gastos.map(g => {
-        const iconOption = ICON_OPTIONS.find(o => o.id === g.icono) || ICON_OPTIONS[6];
-        return `
-          <div class="group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 ${
-            g.pagado 
-              ? 'bg-slate-50/70 border-slate-100 opacity-60' 
-              : `bg-white border-slate-200/70 hover:shadow-sm ${quincena === 'Q1' ? 'hover:border-emerald-200' : 'hover:border-blue-200'}`
-          }">
-            <div class="flex items-center gap-3.5 flex-1 min-w-0">
-              <button onclick="togglePagoGasto('${quincena}', '${g.id}')" class="w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
-                g.pagado 
-                  ? 'bg-emerald-500 border-emerald-500 text-white' 
-                  : `border-slate-300 ${quincena === 'Q1' ? 'hover:border-emerald-500 text-transparent hover:text-emerald-400' : 'hover:border-blue-500 text-transparent hover:text-blue-400'}`
-              }">
-                <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3px]"></i>
-              </button>
-
-              <div class="p-2 rounded-xl ${g.pagado ? 'bg-slate-100 text-slate-400' : (quincena === 'Q1' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600')}">
-                <i data-lucide="${iconOption.iconClass}" class="w-5 h-5"></i>
-              </div>
-
-              <div class="truncate">
-                <span class="block font-extrabold text-sm tracking-wide ${g.pagado ? 'line-through text-slate-400' : 'text-slate-700'}">
-                  ${g.nombre}
-                </span>
-                <span class="text-[10px] text-slate-400 font-bold uppercase">${quincena === 'Q1' ? 'Quincena 1' : 'Quincena 2'}</span>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-              <span class="font-black text-sm ${g.pagado ? 'text-slate-400 line-through' : 'text-slate-800'}">
-                ${formatMoney(g.monto)}
-              </span>
-              <button onclick="eliminarGasto('${quincena}', '${g.id}')" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer" title="Eliminar gasto">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    };
-
-    const renderAlcancias = () => {
-      const container = document.getElementById('alcancias-grid');
-      const alcancias = state.ahorrosDistribuidos || [];
-
-      if (alcancias.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-2 text-center py-6 text-sm text-slate-400 border border-dashed border-white/10 rounded-2xl">
-            Aún no has creado alcancías de ahorro específicas.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = alcancias.map(ah => {
-        const porcentaje = Math.min(100, Math.round((ah.actual / (ah.meta || 1)) * 100));
-        return `
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <div>
-                <h4 class="font-extrabold text-sm text-white tracking-wide">${ah.nombre}</h4>
-                <p class="text-xs text-amber-300 font-bold mt-0.5">
-                  ${formatMoney(ah.actual)} / <span class="text-slate-400">${formatMoney(ah.meta)}</span>
-                </p>
-              </div>
-              
-              <button onclick="eliminarAhorro('${ah.id}')" class="text-slate-400 hover:text-rose-400 p-1 cursor-pointer" title="Eliminar Alcancía">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-3">
-              <div class="bg-emerald-400 h-full rounded-full transition-all duration-300" style="width: ${porcentaje}%"></div>
-            </div>
-
-            <div class="flex justify-end gap-2">
-              <button onclick="modificarAhorroActual('${ah.id}', -100)" class="bg-slate-900 hover:bg-slate-800 text-xs font-bold px-2 py-1 rounded-lg border border-white/10 cursor-pointer text-slate-200">
-                - $100
-              </button>
-              <button onclick="modificarAhorroActual('${ah.id}', 100)" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-2 py-1 rounded-lg cursor-pointer">
-                + $100
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    };
-
-    const renderIconOptionsModal = () => {
-      const container = document.getElementById('iconos-gasto-container');
-      container.innerHTML = ICON_OPTIONS.map(opt => {
-        const activo = selectedIconoGasto === opt.id;
-        return `
-          <button
-            type="button"
-            onclick="seleccionarIconoGasto('${opt.id}')"
-            class="p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-              activo 
-                ? 'bg-slate-900 border-slate-900 text-white' 
-                : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-            }"
-            title="${opt.label}"
-          >
-            <i data-lucide="${opt.iconClass}" class="w-5 h-5"></i>
-            <span class="text-[8px] truncate max-w-full font-bold uppercase">${opt.id}</span>
-          </button>
-        `;
-      }).join('');
-      lucide.createIcons();
-    };
-
-    // =========================================================
-    //                      ACCIONES DEL USUARIO
-    // =========================================================
-    window.toggleEditarIngreso = (quincena, editable) => {
-      const key = quincena === 'Q1' ? 'editIngresoQ1' : 'editIngresoQ2';
-      window[key] = editable;
-      renderIngreso(quincena);
-      lucide.createIcons();
-    };
-
-    window.guardarIngresoInput = (quincena) => {
-      const input = document.getElementById(`input-ingreso-${quincena}`);
-      const valor = Number(input.value) || 0;
-      const key = quincena === 'Q1' ? 'ingresoQ1' : 'ingresoQ2';
-      state[key] = valor;
-      window[quincena === 'Q1' ? 'editIngresoQ1' : 'editIngresoQ2'] = false;
-      pushChanges();
-    };
-
-    window.toggleEditarMetaAhorro = (editable) => {
-      window.editMetaAhorro = editable;
-      renderMetaAhorro();
-      lucide.createIcons();
-    };
-
-    window.guardarMetaAhorroInput = () => {
-      const input = document.getElementById('input-meta-ahorro');
-      const valor = Number(input.value) || 0;
-      state.metaAhorro = valor;
-      window.editMetaAhorro = false;
-      pushChanges();
-    };
-
-    window.togglePagoGasto = (quincena, id) => {
-      const key = quincena === 'Q1' ? 'gastosQ1' : 'gastosQ2';
-      state[key] = state[key].map(g => g.id === id ? { ...g, pagado: !g.pagado } : g);
-      pushChanges();
-    };
-
-    window.eliminarGasto = (quincena, id) => {
-      const key = quincena === 'Q1' ? 'gastosQ1' : 'gastosQ2';
-      state[key] = state[key].filter(g => g.id !== id);
-      pushChanges();
-      showToast("Gasto eliminado", "Se eliminó el gasto de tu presupuesto.", "success");
-    };
-
-    window.abrirModalGasto = (quincena) => {
-      selectedQuincenaGasto = quincena;
-      selectedIconoGasto = 'other';
-      document.getElementById('gasto-nombre').value = '';
-      document.getElementById('gasto-monto').value = '';
-      seleccionarQuincenaModal(quincena);
-      renderIconOptionsModal();
-      document.getElementById('modal-gasto').classList.remove('hidden');
-      document.getElementById('modal-gasto').classList.add('flex');
-    };
-
-    window.cerrarModalGasto = () => {
-      document.getElementById('modal-gasto').classList.add('hidden');
-      document.getElementById('modal-gasto').classList.remove('flex');
-    };
-
-    window.seleccionarQuincenaModal = (quincena) => {
-      selectedQuincenaGasto = quincena;
-      const btnQ1 = document.getElementById('btn-modal-q1');
-      const btnQ2 = document.getElementById('btn-modal-q2');
-      if (quincena === 'Q1') {
-        btnQ1.className = "py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer bg-emerald-50 border-emerald-500 text-emerald-700";
-        btnQ2.className = "py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer bg-white border-slate-200 text-slate-500 hover:bg-slate-50";
-      } else {
-        btnQ1.className = "py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer bg-white border-slate-200 text-slate-500 hover:bg-slate-50";
-        btnQ2.className = "py-2 px-4 rounded-xl font-bold text-xs border transition-all cursor-pointer bg-blue-50 border-blue-500 text-blue-700";
-      }
-    };
-
-    window.seleccionarIconoGasto = (id) => {
-      selectedIconoGasto = id;
-      renderIconOptionsModal();
-    };
-
-    window.guardarNuevoGasto = (e) => {
-      e.preventDefault();
-      const nombreInput = document.getElementById('gasto-nombre');
-      const montoInput = document.getElementById('gasto-monto');
-
-      if (!nombreInput.value || !montoInput.value) return;
-
-      const key = selectedQuincenaGasto === 'Q1' ? 'gastosQ1' : 'gastosQ2';
-      const nuevoItem = {
-        id: 'gasto-' + Date.now(),
-        nombre: nombreInput.value.toUpperCase(),
-        monto: Number(montoInput.value) || 0,
-        pagado: false,
-        icono: selectedIconoGasto
-      };
-
-      if (!state[key]) state[key] = [];
-      state[key].push(nuevoItem);
-
-      pushChanges();
-      cerrarModalGasto();
-      showToast("Gasto Agregado", `Se añadió "${nuevoItem.nombre}" correctamente.`, "success");
-    };
-
-    window.abrirModalAhorro = () => {
-      document.getElementById('ahorro-nombre').value = '';
-      document.getElementById('ahorro-meta').value = '';
-      document.getElementById('ahorro-inicial').value = '';
-      document.getElementById('modal-ahorro').classList.remove('hidden');
-      document.getElementById('modal-ahorro').classList.add('flex');
-    };
-
-    window.cerrarModalAhorro = () => {
-      document.getElementById('modal-ahorro').classList.add('hidden');
-      document.getElementById('modal-ahorro').classList.remove('flex');
-    };
-
-    window.guardarNuevaAlcancia = (e) => {
-      e.preventDefault();
-      const nombreInput = document.getElementById('ahorro-nombre');
-      const metaInput = document.getElementById('ahorro-meta');
-      const inicialInput = document.getElementById('ahorro-inicial');
-
-      if (!nombreInput.value || !metaInput.value) return;
-
-      const nuevoItem = {
-        id: 'ahorro-' + Date.now(),
-        nombre: nombreInput.value,
-        meta: Number(metaInput.value) || 0,
-        actual: Number(inicialInput.value) || 0
-      };
-
-      if (!state.ahorrosDistribuidos) state.ahorrosDistribuidos = [];
-      state.ahorrosDistribuidos.push(nuevoItem);
-
-      pushChanges();
-      cerrarModalAhorro();
-      showToast("Alcancía Creada", `Alcancía "${nuevoItem.nombre}" lista.`, "success");
-    };
-
-    window.modificarAhorroActual = (id, incremento) => {
-      state.ahorrosDistribuidos = (state.ahorrosDistribuidos || []).map(ah => {
-        if (ah.id === id) {
-          const nuevoMonto = Math.max(0, ah.actual + incremento);
-          return { ...ah, actual: nuevoMonto };
-        }
-        return ah;
-      });
-      pushChanges();
-    };
-
-    window.eliminarAhorro = (id) => {
-      state.ahorrosDistribuidos = (state.ahorrosDistribuidos || []).filter(ah => ah.id !== id);
-      pushChanges();
-      showToast("Alcancía Eliminada", "Se eliminó el objetivo de ahorro.", "success");
-    };
-
-    window.restaurarPorDefecto = () => {
-      document.getElementById('modal-confirm').classList.remove('hidden');
-      document.getElementById('modal-confirm').classList.add('flex');
-    };
-
-    window.cerrarConfirm = () => {
-      document.getElementById('modal-confirm').classList.add('hidden');
-      document.getElementById('modal-confirm').classList.remove('flex');
-    };
-
-    window.confirmarRestauracion = () => {
-      state = JSON.parse(JSON.stringify(defaultState));
-      pushChanges();
-      cerrarConfirm();
-      showToast("Valores Reiniciados", "Se cargó la plantilla de egresos por defecto.", "info");
-    };
-
-    // TOASTS
-    const showToast = (titulo, mensaje, tipo = "info") => {
-      const container = document.getElementById('toast-container');
-      const toastId = 'toast-' + Date.now();
-      
-      let bgClass = "bg-white border-slate-200 text-slate-800";
-      let icon = "info";
-      let iconColor = "text-blue-500";
-      
-      if (tipo === "success") {
-        bgClass = "bg-white border-emerald-100 text-slate-800";
-        icon = "check-circle";
-        iconColor = "text-emerald-500";
-      } else if (tipo === "error") {
-        bgClass = "bg-white border-rose-100 text-slate-800";
-        icon = "alert-circle";
-        iconColor = "text-rose-500";
-      }
-
-      const toastHtml = `
-        <div id="${toastId}" class="flex items-start gap-3 p-4 rounded-2xl border shadow-lg ${bgClass} transition-all duration-300 transform translate-x-12 opacity-0 pointer-events-auto">
-          <div class="p-1 rounded-lg bg-slate-50 ${iconColor} shrink-0">
-            <i data-lucide="${icon}" class="w-5 h-5"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <h4 class="font-extrabold text-sm text-slate-900 leading-tight">${titulo}</h4>
-            <p class="text-xs text-slate-500 mt-0.5 leading-normal">${mensaje}</p>
-          </div>
-          <button onclick="dismissToast('${toastId}')" class="text-slate-400 hover:text-slate-600 p-0.5 shrink-0 cursor-pointer">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-      `;
-
-      container.insertAdjacentHTML('beforeend', toastHtml);
-      lucide.createIcons();
-
-      const toastEl = document.getElementById(toastId);
-      setTimeout(() => {
-        toastEl.classList.remove('translate-x-12', 'opacity-0');
-      }, 50);
-
-      setTimeout(() => {
-        dismissToast(toastId);
-      }, 4000);
-    };
-
-    window.dismissToast = (toastId) => {
-      const toastEl = document.getElementById(toastId);
-      if (toastEl) {
-        toastEl.classList.add('opacity-0', 'scale-95');
-        setTimeout(() => {
-          toastEl.remove();
-        }, 300);
-      }
-    };
-
-    // Forzar inicio de la aplicación
-    iniciarApp();
-
-  </script>
+    }
+    const datosGuardados =
+        localStorage.getItem(
+            "miSistemaDeAhorro"
+        );
+    const datos =
+        JSON.parse(datosGuardados);
+    datos.ahorrado += cantidad;
+    localStorage.setItem(
+        "miSistemaDeAhorro",
+        JSON.stringify(datos)
+    );
+    document.getElementById(
+        "nuevoAhorro"
+    ).value = "";
+    mostrarDatos();
+}
+/* ELIMINAR DATOS */
+function eliminarDatos() {
+    const confirmar = confirm(
+        "¿Seguro que quieres eliminar todos tus datos?"
+    );
+    if (confirmar) {
+        localStorage.removeItem(
+            "miSistemaDeAhorro"
+        );
+        location.reload();
+    }
+}
+/* CARGAR AUTOMÁTICAMENTE */
+window.onload = function() {
+    mostrarDatos();
+};
+</script>
 </body>
 </html>
-
-```
